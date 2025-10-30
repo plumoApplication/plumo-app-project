@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Plumo (Prod)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release", // Modo 'release' para produção
+            "program": "lib/main_prod.dart",
+            "args": [
+                "--flavor",
+                "prod"
+            ]
+        },
+        {
+            "name": "Plumo (Dev)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug", // Modo 'debug' para desenvolvimento
+            "program": "lib/main_dev.dart",
+            "args": [
+                "--flavor",
+                "dev"
+            ]
+        }
+    ]
+}

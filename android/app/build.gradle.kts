@@ -37,6 +37,19 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+    
+    flavorDimensions.add("default")
+    productFlavors {
+        create("dev") {
+            dimension = "default"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "Plumo Dev")
+        }
+        create("prod") {
+            dimension = "default"
+            resValue("string", "app_name", "Plumo")
+        }
+    }
 }
 
 flutter {
