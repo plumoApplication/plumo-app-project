@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "922224028149",
+    "project_id": "plumo-dev",
+    "storage_bucket": "plumo-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922224028149:android:e94d52a5e7b7750b5dd8bc",
+        "android_client_info": {
+          "package_name": "com.plumoapp.plumo.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8XZ-5P9NkMmCh3zb7_tUANpkDdnJb3g0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

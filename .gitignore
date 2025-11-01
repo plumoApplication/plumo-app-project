@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Secretos de API (não commitar)
+/lib/app/core/constants/api_constants.dart
+
 # IntelliJ related
 *.iml
 *.ipr
