@@ -1,56 +1,92 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
-
-// Este é o CÉREBRO da nossa feature de autenticação.
-// A UI (tela de login) irá chamar os métodos deste Cubit.
-// O Cubit irá chamar o Repository (o "gerente")
-// e emitir novos estados (que a UI irá escutar).
+// --- IMPORT ADICIONADO ---
+import 'package:plumo/app/features/profile/domain/repositories/profile_repository.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;
+  // --- DEPENDÊNCIA ADICIONADA ---
+  final ProfileRepository profileRepository;
 
-  // O estado inicial é 'AuthInitial' (ainda não checamos nada)
-  AuthCubit({required this.authRepository}) : super(AuthInitial());
+  AuthCubit({
+    required this.authRepository,
+    required this.profileRepository, // <-- Injetada
+  }) : super(AuthInitial());
+
+  /// Nova função privada para checar o perfil
+  /// Esta função é chamada DEPOIS que confirmamos que o usuário está logado.
+  Future<void> _checkProfileStatus() async {
+    // Busca o perfil no repositório
+    final profileResult = await profileRepository.getProfile();
+
+    profileResult.fold(
+      // 1. Falha ao buscar o perfil
+      (failure) {
+        // Se não conseguirmos buscar o perfil (ex: erro de rede,
+        // ou o gatilho falhou), emitimos um erro grave.
+        emit(
+          AuthError(message: 'Falha ao carregar seu perfil. Tente novamente.'),
+        );
+      },
+      // 2. Sucesso ao buscar o perfil
+      (profile) {
+        // Verificamos o 'getter' que criamos na ProfileEntity
+        if (profile.isProfileComplete) {
+          // Perfil completo! Emite Autenticado (com dados)
+          emit(Authenticated(profile: profile));
+        } else {
+          // Perfil incompleto. Emite ProfileIncomplete (com dados)
+          emit(ProfileIncomplete(profile: profile));
+        }
+      },
+    );
+  }
 
   /// Método chamado pela UI quando o usuário clica em "Login"
   Future<void> signIn({required String email, required String password}) async {
-    // 1. Emite "Carregando" para a UI (mostrar um loading spinner)
     emit(AuthLoading());
 
-    // 2. Chama o repositório (que chama o Supabase)
     final result = await authRepository.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    // 3. Processa o resultado do repositório (que é um 'Either')
     result.fold(
-      // 3a. Se deu 'Left' (Falha)
+      // Falha no Login (ex: senha errada)
       (failure) => emit(AuthError(message: failure.message)),
-      // 3b. Se deu 'Right' (Sucesso)
-      (_) => emit(Authenticated()),
+      // Sucesso no Login
+      (_) async {
+        // Se o login deu certo, IMEDIATAMENTE checa o perfil
+        await _checkProfileStatus();
+      },
     );
   }
 
   /// Método chamado pela UI quando o usuário clica em "Cadastrar"
   Future<void> signUp({required String email, required String password}) async {
-    // 1. Emite "Carregando"
     emit(AuthLoading());
 
-    // 2. Chama o repositório
     final result = await authRepository.signUpWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    // 3. Processa o resultado
     result.fold(
-      // 3a. Se deu 'Left' (Falha)
+      // Falha no Cadastro (ex: e-mail já existe)
       (failure) => emit(AuthError(message: failure.message)),
-      // 3b. Se deu 'Right' (Sucesso)
-      // Assumimos (para o MVP) que o cadastro já loga o usuário.
-      (_) => emit(Authenticated()),
+      // Sucesso no Cadastro
+      (_) {
+        // --- LÓGICA CORRIGIDA ---
+        // NÃO chama _checkProfileStatus.
+        // Apenas informa a UI que a conta foi criada.
+        // O usuário agora deve fazer o LOGIN manualmente.
+        emit(
+          const AuthSuccess(
+            message: 'Conta criada com sucesso! Por favor, faça o login.',
+          ),
+        );
+      },
     );
   }
 
@@ -60,19 +96,48 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await authRepository.signOut();
     result.fold(
       (failure) => emit(AuthError(message: failure.message)),
-      (_) => emit(Unauthenticated()), // Ao sair, o estado é 'Deslogado'
+      (_) => emit(Unauthenticated()), // Logout sempre leva a Deslogado
     );
   }
 
   /// Método chamado quando o app abre (Splash Screen)
-  /// para verificar se já existe uma sessão ativa.
-  void checkAuthStatus() {
-    // Esta chamada é síncrona
+  void checkAuthStatus() async {
     final isUserLoggedIn = authRepository.isUserLoggedIn;
 
     if (isUserLoggedIn) {
-      emit(Authenticated());
+      // Se o Supabase diz que há uma sessão,
+      // vamos checar o perfil, mas de forma segura.
+
+      final profileResult = await profileRepository
+          .getProfile(); // <-- Chamamos direto
+
+      profileResult.fold(
+        // 1. FALHA (Sessão Stale/Ruim ou DB offline)
+        (failure) async {
+          // Se falharmos em buscar o perfil no app open,
+          // a sessão é inválida. DESLOGUE SILENCIOSAMENTE.
+          await authRepository.signOut();
+          emit(Unauthenticated()); // Emite um estado limpo.
+        },
+        // 2. SUCESSO
+        (profile) {
+          // O perfil foi carregado, agora verificamos se está completo.
+          if (profile.isProfileComplete) {
+            emit(Authenticated(profile: profile));
+          } else {
+            emit(ProfileIncomplete(profile: profile));
+          }
+        },
+      );
     } else {
+      // Se não há sessão, emite Deslogado
+      emit(Unauthenticated());
+    }
+  }
+
+  void clearErrorState() {
+    // Se o estado atual for um erro, limpa para Unauthenticated
+    if (state is AuthError) {
       emit(Unauthenticated());
     }
   }

@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
+// --- IMPORT ADICIONADO ---
+import 'package:plumo/app/features/profile/domain/entities/profile_entity.dart';
 
-// O 'Equatable' nos ajuda a comparar estados (ex: AuthLoading() == AuthLoading())
-
-// Classe base abstrata para todos os nossos estados
+// Classe base abstrata
 abstract class AuthState extends Equatable {
   const AuthState();
 
@@ -10,28 +10,53 @@ abstract class AuthState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Estado Inicial: O app acabou de abrir, ainda não sabemos se o
-/// usuário está logado ou não.
+/// Estado Inicial
 class AuthInitial extends AuthState {}
 
-/// Estado de Carregamento: O usuário clicou em "Login" ou "Cadastro"
-/// e estamos aguardando a resposta do Supabase.
+/// Estado de Carregamento
 class AuthLoading extends AuthState {}
 
-/// Estado Autenticado: Login ou Cadastro foi um sucesso.
-/// (No futuro, podemos guardar a 'entity' do Usuário aqui)
-class Authenticated extends AuthState {}
+/// --- ESTADO ATUALIZADO ---
+/// Estado Autenticado: Login/Cadastro sucesso E perfil completo.
+/// Agora ele carrega a entidade do perfil.
+class Authenticated extends AuthState {
+  final ProfileEntity profile; // <-- DADO ADICIONADO
 
-/// Estado Não-Autenticado: O usuário não está logado,
-/// fez logout ou a sessão expirou.
+  const Authenticated({required this.profile});
+
+  @override
+  List<Object?> get props => [profile];
+}
+
+/// --- NOVO ESTADO ADICIONADO ---
+/// Estado "Perfil Incompleto": O usuário está logado (autenticado),
+/// mas 'profile.isProfileComplete' retornou 'false'.
+class ProfileIncomplete extends AuthState {
+  final ProfileEntity profile; // <-- DADO ADICIONADO
+
+  const ProfileIncomplete({required this.profile});
+
+  @override
+  List<Object?> get props => [profile];
+}
+
+/// Estado Não-Autenticado: O usuário não está logado.
 class Unauthenticated extends AuthState {}
 
-/// Estado de Erro: Ocorreu uma falha (ex: senha errada, sem internet)
-/// e precisamos mostrar uma mensagem para o usuário.
+/// Estado de Erro: Ocorreu uma falha
 class AuthError extends AuthState {
   final String message;
 
   const AuthError({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class AuthSuccess extends AuthState {
+  final String message;
+
+  const AuthSuccess({required this.message});
 
   @override
   List<Object?> get props => [message];

@@ -77,6 +77,7 @@ class _LoginPageState extends State<LoginPage> {
                       duration: const Duration(seconds: 3), // Dando tempo
                     ),
                   );
+                  context.read<AuthCubit>().clearErrorState();
                 });
               }
 

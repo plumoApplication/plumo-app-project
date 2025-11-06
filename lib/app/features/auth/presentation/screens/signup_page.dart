@@ -52,11 +52,9 @@ class _SignUpPageState extends State<SignUpPage> {
           // O Builder nos dá o 'scaffoldContext'
           body: Builder(
             builder: (scaffoldContext) {
-              // --- CORREÇÃO DE LÓGICA (Início) ---
-
               // Se der Erro (ex: e-mail já existe)
               if (state is AuthError) {
-                // Mostra o SnackBar (pós-build)
+                // (Este bloco já existe)
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   ScaffoldMessenger.of(scaffoldContext).showSnackBar(
                     SnackBar(
@@ -64,6 +62,22 @@ class _SignUpPageState extends State<SignUpPage> {
                       backgroundColor: Colors.red,
                     ),
                   );
+                  context.read<AuthCubit>().clearErrorState();
+                });
+              }
+              // --- BLOCO ADICIONADO ---
+              // Se der Sucesso (Conta Criada)
+              if (state is AuthSuccess) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  // 1. Mostra um SnackBar VERDE (Sucesso)
+                  ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.green, // Cor de Sucesso
+                    ),
+                  );
+                  // 2. Navega (pop) DE VOLTA para a LoginPage
+                  Navigator.of(context).pop();
                 });
               }
 
