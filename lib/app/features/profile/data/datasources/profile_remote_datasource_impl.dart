@@ -1,5 +1,3 @@
-// Usaremos o 'as supabase' para evitar o conflito de 'AuthException'
-// (Embora não seja usado aqui, é uma boa prática manter)
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:plumo/app/core/errors/exceptions.dart';
 import 'package:plumo/app/features/profile/data/datasources/profile_remote_datasource.dart';
