@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:plumo/app/app.dart';
-
-// Imports dos nossos serviços
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:plumo/app/core/constants/api_constants.dart'; // Nosso arquivo de chaves
-
-// 1. IMPORT ADICIONADO
 import 'package:plumo/app/core/services/service_locator.dart';
 
 Future<void> main() async {
@@ -23,7 +19,6 @@ Future<void> main() async {
     url: ApiConstants.supabaseUrl,
     anonKey: ApiConstants.supabaseAnonKey,
   );
-
   // 2. LINHA ADICIONADA: Chama nosso setup de Injeção de Dependência
   setupServiceLocator();
 

@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.5
   dartz: ^0.10.1
   mask_text_input_formatter: ^2.9.0
+  flutter_google_places_sdk: ^0.4.2+1
 
 dev_dependencies:
   flutter_test:

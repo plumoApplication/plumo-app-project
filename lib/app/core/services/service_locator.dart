@@ -1,4 +1,6 @@
+import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:get_it/get_it.dart';
+import 'package:plumo/app/core/constants/api_constants.dart';
 import 'package:plumo/app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
@@ -38,5 +40,9 @@ void setupServiceLocator() {
 
   sl.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  sl.registerSingleton<FlutterGooglePlacesSdk>(
+    FlutterGooglePlacesSdk(ApiConstants.googleApiKey),
   );
 }
