@@ -1,48 +1,58 @@
-// lib/app/features/trip_search/presentation/screens/trip_search_page.dart
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // <-- Importado
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
-import 'package:plumo/app/core/services/service_locator.dart';
-import 'package:plumo/app/core/utils/debouncer.dart'; // Nosso Debouncer
+import 'package:plumo/app/core/services/service_locator.dart'; // <-- Importado
+import 'package:plumo/app/core/utils/debouncer.dart';
+import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
+import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_state.dart';
+import 'package:plumo/app/features/trip_search/presentation/screens/trip_results_page.dart';
+// ---------------------------
 
-class TripSearchPage extends StatefulWidget {
+/// Esta é a Aba 1 (Home) do Passageiro.
+/// Agora ela gerencia seu próprio estado de busca.
+class TripSearchPage extends StatelessWidget {
   const TripSearchPage({super.key});
 
   @override
-  State<TripSearchPage> createState() => _TripSearchPageState();
+  Widget build(BuildContext context) {
+    // 1. Fornecemos o 'TripSearchCubit' para esta tela
+    return BlocProvider(
+      create: (context) => sl<TripSearchCubit>(),
+      child: const _TripSearchView(), // O corpo da tela (antigo StatefulWidget)
+    );
+  }
 }
 
-class _TripSearchPageState extends State<TripSearchPage> {
-  // Controladores
+// Convertemos o antigo StatefulWidget em um StatelessWidget interno
+class _TripSearchView extends StatefulWidget {
+  const _TripSearchView();
+
+  @override
+  State<_TripSearchView> createState() => _TripSearchViewState();
+}
+
+class _TripSearchViewState extends State<_TripSearchView> {
+  // (Controladores, FormKey, Places, Debouncer... tudo igual)
   final _originController = TextEditingController();
   final _destinationController = TextEditingController();
   final _dateController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // A instância do SDK vinda do GetIt
   final _places = sl<FlutterGooglePlacesSdk>();
-
-  // Gerenciamento de Estado da UI de Busca
   List<AutocompletePrediction> _originPredictions = [];
   List<AutocompletePrediction> _destinationPredictions = [];
   bool _isSearchingOrigin = false;
   bool _isSearchingDestination = false;
-
-  // Debouncer (para economizar custos de API)
   final _debouncer = Debouncer(milliseconds: 500);
-
-  // Foco (para sabermos qual lista mostrar)
   final FocusNode _originFocus = FocusNode();
   final FocusNode _destinationFocus = FocusNode();
-
-  // Locais selecionados
   Place? _originPlace;
   Place? _destinationPlace;
 
   @override
   void initState() {
     super.initState();
-    // Adiciona os 'listeners' para o autocomplete
+    // (Listeners... tudo igual)
     _originFocus.addListener(() {
       if (_originFocus.hasFocus) {
         setState(() {
@@ -65,7 +75,6 @@ class _TripSearchPageState extends State<TripSearchPage> {
         });
       }
     });
-
     _originController.addListener(() {
       if (_originFocus.hasFocus) {
         _onSearchChanged(_originController.text, true);
@@ -80,6 +89,7 @@ class _TripSearchPageState extends State<TripSearchPage> {
 
   @override
   void dispose() {
+    // (Dispose... tudo igual)
     _originController.dispose();
     _destinationController.dispose();
     _dateController.dispose();
@@ -88,10 +98,30 @@ class _TripSearchPageState extends State<TripSearchPage> {
     super.dispose();
   }
 
-  // --- LÓGICA DE AUTOCOMPLETE ---
-
-  // Chamado a cada tecla digitada (com debounce)
+  // (onSearchChanged... tudo igual)
   void _onSearchChanged(String query, bool isOrigin) {
+    // --- LÓGICA DE INVALIDAÇÃO (CORRIGIDA) ---
+    // Verificamos se o usuário está "sujando" a seleção
+    if (isOrigin && _originFocus.hasFocus) {
+      // O usuário está digitando no campo Origem.
+      // Se o texto digitado for DIFERENTE do endereço
+      // do local que já salvamos, ENTÃO invalide o local.
+      if (_originPlace != null && query != _originPlace!.address) {
+        setState(() {
+          _originPlace = null;
+        });
+      }
+    } else if (!isOrigin && _destinationFocus.hasFocus) {
+      // O usuário está digitando no campo Destino.
+      if (_destinationPlace != null && query != _destinationPlace!.address) {
+        setState(() {
+          _destinationPlace = null;
+        });
+      }
+    }
+    // --- FIM DA LÓGICA DE INVALIDAÇÃO ---
+
+    // A lógica de busca (com debounce) continua
     if (query.isEmpty) {
       setState(() {
         isOrigin ? _originPredictions = [] : _destinationPredictions = [];
@@ -99,10 +129,8 @@ class _TripSearchPageState extends State<TripSearchPage> {
       return;
     }
 
-    // Usa o Debouncer
     _debouncer.run(() async {
       try {
-        // 1. O MÉTODO CORRETO: findAutocompletePredictions
         final result = await _places.findAutocompletePredictions(
           query,
           countries: ['BR'],
@@ -122,33 +150,34 @@ class _TripSearchPageState extends State<TripSearchPage> {
     });
   }
 
-  // Chamado quando o usuário clica em um item da lista
   Future<void> _onPredictionSelected(
     AutocompletePrediction prediction,
     bool isOrigin,
   ) async {
     try {
-      // 2. O MÉTODO CORRETO: fetchPlace
       final placeDetails = await _places.fetchPlace(
         prediction.placeId,
         fields: [PlaceField.Address, PlaceField.Location, PlaceField.Name],
       );
 
-      if (placeDetails.place == null) return;
+      if (placeDetails.place == null || placeDetails.place!.address == null) {
+        return;
+      }
+
+      final Place selectedPlace = placeDetails.place!;
 
       setState(() {
         if (isOrigin) {
-          _originPlace = placeDetails.place;
-          _originController.text = prediction.fullText;
-          _originPredictions = []; // Esconde a lista
-          FocusScope.of(
-            context,
-          ).requestFocus(_destinationFocus); // Pula para o próximo
+          _originPlace = selectedPlace;
+          _originController.text = selectedPlace.address!; // <-- USA O ENDEREÇO
+          _originPredictions = [];
+          FocusScope.of(context).requestFocus(_destinationFocus);
         } else {
-          _destinationPlace = placeDetails.place;
-          _destinationController.text = prediction.fullText;
-          _destinationPredictions = []; // Esconde a lista
-          FocusScope.of(context).unfocus(); // Esconde o teclado
+          _destinationPlace = selectedPlace;
+          _destinationController.text =
+              selectedPlace.address!; // <-- USA O ENDEREÇO
+          _destinationPredictions = [];
+          FocusScope.of(context).unfocus();
         }
       });
     } catch (e) {
@@ -156,30 +185,7 @@ class _TripSearchPageState extends State<TripSearchPage> {
     }
   }
 
-  // --- LÓGICA DO FORMULÁRIO ---
-
-  void _onSearchPressed() {
-    if (_formKey.currentState!.validate() &&
-        _originPlace != null &&
-        _destinationPlace != null) {
-      print('Buscando viagem...');
-      print(
-        'Origem: ${_originPlace!.address} (Lat: ${_originPlace!.latLng?.lat})',
-      );
-      print(
-        'Destino: ${_destinationPlace!.address} (Lat: ${_destinationPlace!.latLng?.lat})',
-      );
-      print('Data: ${_dateController.text}');
-      // TODO: Chamar o Cubit de Busca
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecione os locais e a data.'),
-        ),
-      );
-    }
-  }
-
+  // (selectDate... tudo igual)
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -187,7 +193,6 @@ class _TripSearchPageState extends State<TripSearchPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-
     if (picked != null) {
       setState(() {
         _dateController.text =
@@ -198,112 +203,167 @@ class _TripSearchPageState extends State<TripSearchPage> {
     }
   }
 
+  // --- LÓGICA DO BOTÃO "BUSCAR" ATUALIZADA ---
+  void _onSearchPressed(BuildContext context) {
+    // 1. Valida o formulário
+    if (_formKey.currentState!.validate() &&
+        _originPlace != null &&
+        _destinationPlace != null) {
+      // 2. Chama o Cubit (fornecido pelo BlocProvider acima)
+      context.read<TripSearchCubit>().searchTrips(
+        origin: _originPlace,
+        destination: _destinationPlace,
+        date: _dateController.text,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, selecione os locais e a data.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Buscar Viagem')),
-      // Usamos um 'Stack' para colocar a lista de resultados
-      // "flutuando" por cima do formulário
-      body: SizedBox.expand(
-        child: GestureDetector(
-          onTap: () {
-            // ...remove o foco de qualquer campo de texto.
-            FocusScope.of(context).unfocus();
-          },
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
-            children: [
-              // O Formulário (embaixo)
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextFormField(
-                        controller: _originController,
-                        focusNode: _originFocus, // Conecta o Foco
-                        decoration: const InputDecoration(
-                          labelText: 'De (Origem)',
-                          hintText: 'Digite o local de partida',
-                          prefixIcon: Icon(Icons.location_on_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        // Não é mais 'readOnly', o usuário digita
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Campo obrigatório'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _destinationController,
-                        focusNode: _destinationFocus, // Conecta o Foco
-                        decoration: const InputDecoration(
-                          labelText: 'Para (Destino)',
-                          hintText: 'Digite o local de destino',
-                          prefixIcon: Icon(Icons.location_on),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Campo obrigatório'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _dateController,
-                        decoration: const InputDecoration(
-                          labelText: 'Data da Viagem',
-                          hintText: 'Selecione a data',
-                          prefixIcon: Icon(Icons.calendar_today),
-                          border: OutlineInputBorder(),
-                        ),
-                        readOnly: true,
-                        onTap: () {
-                          _selectDate(context);
-                        },
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Campo obrigatório'
-                            : null,
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: _onSearchPressed,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 18),
-                        ),
-                        child: const Text('Buscar Viagens'),
-                      ),
-                    ],
-                  ),
-                ),
+    // --- O SCAFFOLD AGORA É "EMBRULHADO" POR UM BLOC CONSUMER ---
+    return BlocConsumer<TripSearchCubit, TripSearchState>(
+      listener: (context, state) {
+        // --- LÓGICA DO LISTENER ---
+
+        // 3. Se a busca deu Erro (no futuro)
+        if (state is TripSearchError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+
+        // 4. Se a busca deu Sucesso
+        if (state is TripSearchSuccess) {
+          // Navega para a tela de Resultados
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const TripResultsPage(
+                // (No futuro, passaremos os dados da busca aqui)
               ),
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        // 5. Verifica se estamos carregando (para desabilitar o botão)
+        final bool isLoading = state is TripSearchLoading;
 
-              // --- A UI DE AUTOCOMPLETE (FLUTUANDO POR CIMA) ---
+        return Scaffold(
+          appBar: AppBar(title: const Text('Buscar Viagem')),
+          body: SizedBox.expand(
+            child: GestureDetector(
+              onTap: () {
+                FocusScope.of(context).unfocus();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Stack(
+                children: [
+                  // O Formulário (embaixo)
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // (TextFormFields... tudo igual)
+                          TextFormField(
+                            controller: _originController,
+                            focusNode: _originFocus,
+                            decoration: const InputDecoration(
+                              labelText: 'De (Origem)',
+                              hintText: 'Digite o local de partida',
+                              prefixIcon: Icon(Icons.location_on_outlined),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? 'Campo obrigatório'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _destinationController,
+                            focusNode: _destinationFocus,
+                            decoration: const InputDecoration(
+                              labelText: 'Para (Destino)',
+                              hintText: 'Digite o local de destino',
+                              prefixIcon: Icon(Icons.location_on),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? 'Campo obrigatório'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _dateController,
+                            decoration: const InputDecoration(
+                              labelText: 'Data da Viagem',
+                              hintText: 'Selecione a data',
+                              prefixIcon: Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(),
+                            ),
+                            readOnly: true,
+                            onTap: () {
+                              _selectDate(context);
+                            },
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? 'Campo obrigatório'
+                                : null,
+                          ),
+                          const SizedBox(height: 32),
 
-              // Lista de "Origem"
-              if (_isSearchingOrigin && _originPredictions.isNotEmpty)
-                _buildPredictionsList(_originPredictions, true),
+                          // --- BOTÃO "BUSCAR" ATUALIZADO ---
+                          ElevatedButton(
+                            // Chama o _onSearchPressed com o 'context'
+                            // e é desabilitado se 'isLoading' for true
+                            onPressed: isLoading
+                                ? null
+                                : () => _onSearchPressed(context),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              textStyle: const TextStyle(fontSize: 18),
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text('Buscar Viagens'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-              // Lista de "Destino"
-              if (_isSearchingDestination && _destinationPredictions.isNotEmpty)
-                _buildPredictionsList(_destinationPredictions, false),
-            ],
+                  // (Lista de Autocomplete "Origem"... tudo igual)
+                  if (_isSearchingOrigin && _originPredictions.isNotEmpty)
+                    _buildPredictionsList(_originPredictions, true),
+
+                  // (Lista de Autocomplete "Destino"... tudo igual)
+                  if (_isSearchingDestination &&
+                      _destinationPredictions.isNotEmpty)
+                    _buildPredictionsList(_destinationPredictions, false),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  // Widget auxiliar para construir a lista de sugestões
+  // (Widget auxiliar _buildPredictionsList... tudo igual)
   Widget _buildPredictionsList(
     List<AutocompletePrediction> predictions,
     bool isOrigin,
   ) {
-    // Posiciona a lista abaixo do campo de texto correto
     final double topPosition = isOrigin ? 100.0 : 185.0;
-
     return Positioned(
       top: topPosition,
       left: 16,
@@ -315,7 +375,7 @@ class _TripSearchPageState extends State<TripSearchPage> {
           borderRadius: BorderRadius.circular(8.0),
           child: ListView.builder(
             shrinkWrap: true,
-            padding: EdgeInsets.zero, // Para a lista não ter tamanho infinito
+            padding: EdgeInsets.zero,
             itemCount: predictions.length,
             itemBuilder: (context, index) {
               final prediction = predictions[index];

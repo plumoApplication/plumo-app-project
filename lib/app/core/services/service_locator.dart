@@ -2,6 +2,7 @@ import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:get_it/get_it.dart';
 import 'package:plumo/app/core/constants/api_constants.dart';
 import 'package:plumo/app/features/profile/presentation/cubit/profile_cubit.dart';
+import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource_impl.dart';
@@ -44,5 +45,11 @@ void setupServiceLocator() {
 
   sl.registerSingleton<FlutterGooglePlacesSdk>(
     FlutterGooglePlacesSdk(ApiConstants.googleApiKey),
+  );
+
+  sl.registerFactory(
+    () => TripSearchCubit(
+      // (No futuro, injetaremos o 'tripRepository: sl()' aqui)
+    ),
   );
 }
