@@ -18,6 +18,7 @@ class ProfileModel extends ProfileEntity {
     super.profilePictureUrl,
     super.updatedAt,
     required super.createdAt,
+    super.role,
   });
 
   /// Construtor de fábrica: 'fromJson' (ou 'fromMap')
@@ -38,6 +39,7 @@ class ProfileModel extends ProfileEntity {
           ? null
           : DateTime.parse(map['updated_at'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
+      role: map['role'] as String?,
     );
   }
 
@@ -56,6 +58,7 @@ class ProfileModel extends ProfileEntity {
       'profile_picture_url': profilePictureUrl,
       'updated_at': updatedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'role': role,
     };
   }
 }

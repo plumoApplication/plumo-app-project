@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
 import 'package:plumo/app/features/auth/presentation/screens/login_page.dart';
+import 'package:plumo/app/features/driver_shell/presentation/screens/driver_shell.dart';
 import 'package:plumo/app/features/profile/presentation/screens/complete_profile_page.dart';
 import 'package:plumo/app/features/passenger_shell/presentation/screens/passenger_shell.dart';
 
@@ -15,8 +16,15 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, state) {
         // 1. Estado: Logado E Perfil Completo
         if (state is Authenticated) {
-          // LÓGICA CORRIGIDA: Mostra o "Invólucro" (Shell)
-          return const PassengerShell();
+          final userRole = state.profile.role;
+          if (userRole == 'driver') {
+            // Se for motorista, mostra o Shell do Motorista
+            return const DriverShell();
+          } else {
+            // Se for 'passenger' (ou nulo, por segurança),
+            // mostra o Shell do Passageiro
+            return const PassengerShell();
+          }
         }
 
         // 2. Estado: Logado MAS Perfil Incompleto

@@ -12,6 +12,7 @@ class ProfileEntity extends Equatable {
   final String? profilePictureUrl;
   final DateTime? updatedAt;
   final DateTime createdAt;
+  final String? role;
 
   const ProfileEntity({
     required this.id,
@@ -23,6 +24,7 @@ class ProfileEntity extends Equatable {
     this.profilePictureUrl,
     this.updatedAt,
     required this.createdAt,
+    this.role,
   });
 
   /// VERIFICADOR DE PERFIL (Regra de Negócio)
@@ -47,5 +49,6 @@ class ProfileEntity extends Equatable {
     profilePictureUrl,
     updatedAt,
     createdAt,
+    role,
   ];
 }
