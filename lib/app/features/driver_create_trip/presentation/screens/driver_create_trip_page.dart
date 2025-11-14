@@ -75,6 +75,8 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
   // --- LÓGICA DE UI (sem alterações) ---
   void _addWaypoint() {
     final newForm = WaypointFormModel();
+
+    // (Listeners - sem alterações)
     newForm.focusNode.addListener(() {
       if (newForm.focusNode.hasFocus) {
         setState(() {
@@ -95,8 +97,18 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
         );
       }
     });
+
     setState(() {
-      _waypointForms.add(newForm);
+      // --- CORREÇÃO (Lógica de Inserção) ---
+      // Se a lista já tem 2 (Origem/Destino), insere
+      // o novo ponto *antes* do último item (o Destino).
+      if (_waypointForms.length >= 2) {
+        _waypointForms.insert(_waypointForms.length - 1, newForm);
+      } else {
+        // Senão, apenas adiciona (para a Origem e Destino iniciais)
+        _waypointForms.add(newForm);
+      }
+      // --- FIM DA CORREÇÃO ---
     });
   }
 
@@ -547,13 +559,21 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
   }
 
   /// --- WIDGET AUXILIAR ATUALIZADO (Passo 17.23) ---
+  /// --- WIDGET AUXILIAR ATUALIZADO (Rótulos e Remoção) ---
   Widget _buildWaypointCard(WaypointFormModel form, int index) {
+    // --- LÓGICA DE TÍTULO CORRIGIDA ---
     bool isOrigin = index == 0;
-    String title = isOrigin ? 'Local de Origem' : 'Local de Destino';
-    // Define o título (Origem, Destino, ou Parada 3, Parada 4...)
-    if (!isOrigin && index > 1) {
-      title = 'Ponto de Parada ${index + 1}';
+    bool isDestination = index == _waypointForms.length - 1;
+
+    String title =
+        'Ponto de Parada $index'; // Rótulo para paradas intermediárias
+    if (isOrigin) {
+      title = 'Local de Origem';
+    } else if (isDestination && index > 0) {
+      // Garante que não é a origem
+      title = 'Local de Destino';
     }
+    // --- FIM DA CORREÇÃO ---
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -572,8 +592,10 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
                     fontSize: 16,
                   ),
                 ),
-                // Botão de Remover (só aparece se houver mais de 2 paradas)
-                if (_waypointForms.length > 2)
+
+                // --- LÓGICA DE REMOVER CORRIGIDA ---
+                // Só permite remover se NÃO for Origem E NÃO for Destino
+                if (!isOrigin && !isDestination)
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () => _removeWaypoint(index),
@@ -584,7 +606,7 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
             ),
             const SizedBox(height: 12),
 
-            // Campo de Local
+            // Campo de Local (com o 'Target' que já corrigimos)
             CompositedTransformTarget(
               link: form.layerLink,
               child: TextFormField(
@@ -600,12 +622,11 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
               ),
             ),
 
-            // --- CORREÇÃO (Passo 17.23): Oculta o preço se for Origem ---
+            // Campo de Preço (Oculto na Origem - lógica correta)
             if (!isOrigin)
               Column(
                 children: [
                   const SizedBox(height: 12),
-                  // Campo de Preço
                   TextFormField(
                     controller: form.priceController,
                     decoration: const InputDecoration(
@@ -619,7 +640,6 @@ class _DriverCreateTripViewState extends State<_DriverCreateTripView> {
                     ),
                     validator: (v) {
                       if (isOrigin) {
-                        // Segurança, embora esteja oculto
                         form.priceController.text = '0,00';
                         return null;
                       }

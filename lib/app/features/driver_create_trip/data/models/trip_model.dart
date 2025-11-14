@@ -12,6 +12,12 @@ class TripModel extends TripEntity {
     super.status,
     super.createdAt,
     required super.waypoints,
+    super.originName,
+    super.originLat,
+    super.originLng,
+    super.destinationName,
+    super.destinationLat,
+    super.destinationLng,
   });
 
   /// fromMap (lendo do banco) - SEMPRE TERÁ OS DADOS (não nulos)
@@ -31,6 +37,12 @@ class TripModel extends TripEntity {
                 TripWaypointModel.fromMap(waypointMap as Map<String, dynamic>),
           )
           .toList(),
+      originName: map['origin_name'] as String,
+      originLat: map['origin_lat'] as double,
+      originLng: map['origin_lng'] as double,
+      destinationName: map['destination_name'] as String,
+      destinationLat: map['destination_lat'] as double,
+      destinationLng: map['destination_lng'] as double,
     );
   }
 
@@ -46,6 +58,12 @@ class TripModel extends TripEntity {
       'trip_waypoints': waypoints
           .map((waypoint) => (waypoint as TripWaypointModel).toMap())
           .toList(),
+      'origin_name': originName,
+      'origin_lat': originLat,
+      'origin_lng': originLng,
+      'destination_name': destinationName,
+      'destination_lat': destinationLat,
+      'destination_lng': destinationLng,
     };
   }
 

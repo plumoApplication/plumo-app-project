@@ -26,7 +26,13 @@ class CreateTripRemoteDataSourceImpl implements CreateTripRemoteDataSource {
         'driver_id': driverId,
         'departure_time': trip.departureTime.toIso8601String(),
         'available_seats': trip.availableSeats,
-        'status': trip.status, // (Virá como 'scheduled' do Cubit)
+        'status': trip.status,
+        'origin_name': trip.originName,
+        'origin_lat': trip.originLat,
+        'origin_lng': trip.originLng,
+        'destination_name': trip.destinationName,
+        'destination_lat': trip.destinationLat,
+        'destination_lng': trip.destinationLng,
       };
 
       // 3. Faz o 'insert' e pede o 'id' de volta

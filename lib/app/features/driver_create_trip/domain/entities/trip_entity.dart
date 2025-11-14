@@ -10,6 +10,12 @@ class TripEntity extends Equatable {
   final int availableSeats;
   final String? status;
   final DateTime? createdAt;
+  final String? originName;
+  final double? originLat;
+  final double? originLng;
+  final String? destinationName;
+  final double? destinationLat;
+  final double? destinationLng;
 
   // Uma viagem 'contém' uma lista de pontos de parada
   final List<TripWaypointEntity> waypoints;
@@ -22,6 +28,12 @@ class TripEntity extends Equatable {
     this.status,
     this.createdAt,
     required this.waypoints,
+    this.originName,
+    this.originLat,
+    this.originLng,
+    this.destinationName,
+    this.destinationLat,
+    this.destinationLng,
   });
 
   @override
@@ -33,5 +45,11 @@ class TripEntity extends Equatable {
     status,
     createdAt,
     waypoints,
+    originName,
+    originLat,
+    originLng,
+    destinationName,
+    destinationLat,
+    destinationLng,
   ];
 }

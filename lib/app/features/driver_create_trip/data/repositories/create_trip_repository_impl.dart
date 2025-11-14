@@ -18,14 +18,19 @@ class CreateTripRepositoryImpl implements CreateTripRepository {
   @override
   Future<Either<Failure, void>> createTrip(TripEntity trip) async {
     try {
-      // 1. Converte a Entidade 'limpa' em um Modelo de Dados
-      //    (Estamos assumindo que a 'trip' recebida da UI já tem os
-      //     waypoints, mas sem os IDs)
+      final originWaypoint = trip.waypoints.first;
+      final destinationWaypoint = trip.waypoints.last;
       final tripModel = TripModel(
         departureTime: trip.departureTime,
         availableSeats: trip.availableSeats,
         status: trip.status ?? 'scheduled', // Garante um status
         waypoints: trip.waypoints,
+        originName: originWaypoint.placeName,
+        originLat: originWaypoint.latitude,
+        originLng: originWaypoint.longitude,
+        destinationName: destinationWaypoint.placeName,
+        destinationLat: destinationWaypoint.latitude,
+        destinationLng: destinationWaypoint.longitude,
       );
 
       // 2. CHAMA O PASSO 1 (DataSource): Criar a 'trip' principal
