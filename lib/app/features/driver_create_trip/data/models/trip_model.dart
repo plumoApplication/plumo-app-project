@@ -76,6 +76,12 @@ class TripModel extends TripEntity {
     String? status,
     DateTime? createdAt,
     List<TripWaypointEntity>? waypoints,
+    String? originName,
+    double? originLat,
+    double? originLng,
+    String? destinationName,
+    double? destinationLat,
+    double? destinationLng,
   }) {
     return TripModel(
       id: id ?? this.id,
@@ -85,6 +91,12 @@ class TripModel extends TripEntity {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       waypoints: waypoints ?? this.waypoints,
+      originName: originName ?? this.originName,
+      originLat: originLat ?? this.originLat,
+      originLng: originLng ?? this.originLng,
+      destinationName: destinationName ?? this.destinationName,
+      destinationLat: destinationLat ?? this.destinationLat,
+      destinationLng: destinationLng ?? this.destinationLng,
     );
   }
 }

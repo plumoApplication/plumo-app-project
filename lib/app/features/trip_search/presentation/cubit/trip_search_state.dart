@@ -1,24 +1,29 @@
 import 'package:equatable/equatable.dart';
+import 'package:plumo/app/features/trip_search/presentation/models/search_result_item.dart';
 
-// Classe base
 abstract class TripSearchState extends Equatable {
   const TripSearchState();
   @override
   List<Object> get props => [];
 }
 
-/// Estado Inicial: O formulário está pronto.
 class TripSearchInitial extends TripSearchState {}
 
-/// Estado de Carregamento: O usuário clicou em "Buscar"
-/// (No futuro, estaremos chamando o Supabase).
 class TripSearchLoading extends TripSearchState {}
 
-/// Estado de Sucesso: A busca foi concluída (mesmo que 0 resultados).
-/// (No futuro, ele carregará a 'List<TripEntity')
-class TripSearchSuccess extends TripSearchState {}
+/// --- ESTADO ATUALIZADO ---
+/// Agora ele carrega a lista de 'Resultados de Busca' processados
+class TripSearchSuccess extends TripSearchState {
+  // (Era List<TripEntity>)
+  final List<SearchResultItem> results;
 
-/// Estado de Erro: A busca falhou.
+  const TripSearchSuccess({required this.results});
+
+  @override
+  List<Object> get props => [results];
+}
+// --- FIM DA ATUALIZAÇÃO ---
+
 class TripSearchError extends TripSearchState {
   final String message;
   const TripSearchError({required this.message});

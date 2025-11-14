@@ -1,41 +1,32 @@
 import 'package:get_it/get_it.dart';
+import 'package:plumo/app/features/trip_search/data/repositories/trip_search_repository_impl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:plumo/app/core/constants/api_constants.dart';
-
-// ... (Imports de Auth) ...
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource_impl.dart';
 import 'package:plumo/app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:plumo/app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
-
-// ... (Imports de Profile) ...
 import 'package:plumo/app/features/profile/data/datasources/profile_remote_datasource.dart';
 import 'package:plumo/app/features/profile/data/datasources/profile_remote_datasource_impl.dart';
 import 'package:plumo/app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:plumo/app/features/profile/domain/repositories/profile_repository.dart';
 import 'package:plumo/app/features/profile/presentation/cubit/profile_cubit.dart';
-
-// ... (Imports de Trip Search) ...
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
-
-// ... (Imports de Create Trip) ...
+import 'package:plumo/app/features/trip_search/data/datasources/trip_search_remote_datasource.dart';
+import 'package:plumo/app/features/trip_search/data/datasources/trip_search_remote_datasource_impl.dart';
+import 'package:plumo/app/features/trip_search/domain/repositories/trip_search_repository.dart';
 import 'package:plumo/app/features/driver_create_trip/data/datasources/create_trip_remote_datasource.dart';
 import 'package:plumo/app/features/driver_create_trip/data/datasources/create_trip_remote_datasource_impl.dart';
 import 'package:plumo/app/features/driver_create_trip/data/repositories/create_trip_repository_impl.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/repositories/create_trip_repository.dart';
 import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_cubit.dart';
-
-// ... (Imports de Driver Trips - Data/Domain) ...
 import 'package:plumo/app/features/driver_trips/data/datasources/driver_trips_remote_datasource.dart';
 import 'package:plumo/app/features/driver_trips/data/datasources/driver_trips_remote_datasource_impl.dart';
 import 'package:plumo/app/features/driver_trips/data/repositories/driver_trips_repository_impl.dart';
 import 'package:plumo/app/features/driver_trips/domain/repositories/driver_trips_repository.dart';
-
-// === IMPORT ADICIONADO (Driver Trips Cubit) ===
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_cubit.dart';
-// ==============================================
 
 final sl = GetIt.instance;
 
@@ -48,7 +39,7 @@ void setupServiceLocator() {
 
   // --== FEATURES ==--
 
-  // ================== AUTH (Autenticação) ==================
+  // ... (Registros de AUTH) ...
   sl.registerFactory(
     () => AuthCubit(authRepository: sl(), profileRepository: sl()),
   );
@@ -59,7 +50,7 @@ void setupServiceLocator() {
     () => AuthRemoteDataSourceImpl(supabaseClient: sl()),
   );
 
-  // ================== PROFILE (Perfil) ==================
+  // ... (Registros de PROFILE) ...
   sl.registerFactory(() => ProfileCubit(profileRepository: sl()));
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(remoteDataSource: sl()),
@@ -69,9 +60,22 @@ void setupServiceLocator() {
   );
 
   // ================== TRIP SEARCH (Busca de Viagem) ==================
-  sl.registerFactory(() => TripSearchCubit());
+  // Presentation (Cubit)
+  sl.registerFactory(() => TripSearchCubit(tripSearchRepository: sl()));
 
-  // ================== CREATE TRIP (Criar Viagem) ==================
+  // --- BLOCO ADICIONADO ---
+  // Repository (Gerente)
+  sl.registerLazySingleton<TripSearchRepository>(
+    () => TripSearchRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // DataSource (Trabalhador)
+  sl.registerLazySingleton<TripSearchRemoteDataSource>(
+    () => TripSearchRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+  // --- FIM DO BLOCO ---
+
+  // ... (Registros de CREATE TRIP) ...
   sl.registerFactory(() => CreateTripCubit(createTripRepository: sl()));
   sl.registerLazySingleton<CreateTripRepository>(
     () => CreateTripRepositoryImpl(remoteDataSource: sl()),
@@ -80,17 +84,11 @@ void setupServiceLocator() {
     () => CreateTripRemoteDataSourceImpl(supabaseClient: sl()),
   );
 
-  // ================== DRIVER TRIPS (Minhas Viagens) ==================
-  // Presentation (Cubit)
+  // ... (Registros de DRIVER TRIPS) ...
   sl.registerFactory(() => DriverTripsCubit(driverTripsRepository: sl()));
-  // ------------------------
-
-  // Repository (Gerente)
   sl.registerLazySingleton<DriverTripsRepository>(
     () => DriverTripsRepositoryImpl(remoteDataSource: sl()),
   );
-
-  // DataSource (Trabalhador)
   sl.registerLazySingleton<DriverTripsRemoteDataSource>(
     () => DriverTripsRemoteDataSourceImpl(supabaseClient: sl()),
   );

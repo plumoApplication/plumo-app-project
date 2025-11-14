@@ -213,7 +213,7 @@ class _TripSearchViewState extends State<_TripSearchView> {
       context.read<TripSearchCubit>().searchTrips(
         origin: _originPlace,
         destination: _destinationPlace,
-        date: _dateController.text,
+        dateString: _dateController.text,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -243,9 +243,7 @@ class _TripSearchViewState extends State<_TripSearchView> {
           // Navega para a tela de Resultados
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const TripResultsPage(
-                // (No futuro, passaremos os dados da busca aqui)
-              ),
+              builder: (context) => TripResultsPage(results: state.results),
             ),
           );
         }
