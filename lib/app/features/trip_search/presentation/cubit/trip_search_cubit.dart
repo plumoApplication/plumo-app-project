@@ -94,6 +94,11 @@ class TripSearchCubit extends Cubit<TripSearchState> {
     );
   }
 
+  // Metodo para limpar os campos quando volta para a tela após a solicitação de reserva.
+  void resetSearch() {
+    emit(TripSearchInitial());
+  }
+
   /// Função Helper para encontrar o waypoint na lista
   /// (Compara o endereço do Google Places com o nome no waypoint)
   TripWaypointEntity? _findMatchingWaypoint(

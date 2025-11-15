@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:plumo/app/features/booking/presentation/screens/trip_detail_page.dart';
 import 'package:plumo/app/features/trip_search/presentation/models/search_result_item.dart';
 import 'package:intl/intl.dart';
 
@@ -63,75 +64,91 @@ class TripResultsPage extends StatelessWidget {
     final intermediateStops = trip.waypoints.length - 2;
     // --- FIM DA LÓGICA ---
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      elevation: 2.0,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- ROTA (ex: A -> B) ---
-            Text(
-              '$originName → $destinationName', // <-- USA OS NOMES DO SEGMENTO
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-
-            // --- PREÇO (ex: R$ 30,00) ---
-            Text(
-              formattedPrice, // <-- USA O PREÇO CALCULADO
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.green, // (Cor temporária)
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TripDetailPage(searchResult: item),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        elevation: 2.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- ROTA (ex: A -> B) ---
+              Text(
+                '$originName → $destinationName', // <-- USA OS NOMES DO SEGMENTO
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
-            // (Informações da viagem completa)
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(formattedDate, style: const TextStyle(fontSize: 14)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.event_seat, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  '${trip.availableSeats} assentos disponíveis',
-                  style: const TextStyle(fontSize: 14),
+              // --- PREÇO (ex: R$ 30,00) ---
+              Text(
+                formattedPrice, // <-- USA O PREÇO CALCULADO
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green, // (Cor temporária)
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.pin_drop_outlined,
-                  size: 16,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  intermediateStops == 0
-                      ? 'Viagem direta'
-                      : '$intermediateStops parada${intermediateStops > 1 ? 's' : ''} intermediária${intermediateStops > 1 ? 's' : ''}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
 
-            //(Fase Futura): Adicionar botão "Reservar"
-          ],
+              // (Informações da viagem completa)
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(formattedDate, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.event_seat, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${trip.availableSeats} assentos disponíveis',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.pin_drop_outlined,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    intermediateStops == 0
+                        ? 'Viagem direta'
+                        : '$intermediateStops parada${intermediateStops > 1 ? 's' : ''} intermediária${intermediateStops > 1 ? 's' : ''}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+
+              //(Fase Futura): Adicionar botão "Reservar"
+            ],
+          ),
         ),
       ),
     );

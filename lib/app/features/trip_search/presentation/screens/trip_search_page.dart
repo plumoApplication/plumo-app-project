@@ -15,11 +15,7 @@ class TripSearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Fornecemos o 'TripSearchCubit' para esta tela
-    return BlocProvider(
-      create: (context) => sl<TripSearchCubit>(),
-      child: const _TripSearchView(), // O corpo da tela (antigo StatefulWidget)
-    );
+    return const _TripSearchView();
   }
 }
 
@@ -224,12 +220,29 @@ class _TripSearchViewState extends State<_TripSearchView> {
     }
   }
 
+  void _clearForm() {
+    _originController.clear();
+    _destinationController.clear();
+    _dateController.clear();
+
+    setState(() {
+      _originPlace = null;
+      _destinationPlace = null;
+      _originPredictions = [];
+      _destinationPredictions = [];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // --- O SCAFFOLD AGORA É "EMBRULHADO" POR UM BLOC CONSUMER ---
     return BlocConsumer<TripSearchCubit, TripSearchState>(
       listener: (context, state) {
         // --- LÓGICA DO LISTENER ---
+        // Se o estado voltar para o 'Initial' (ex: após uma reserva)
+        if (state is TripSearchInitial) {
+          _clearForm();
+        }
 
         // 3. Se a busca deu Erro (no futuro)
         if (state is TripSearchError) {
