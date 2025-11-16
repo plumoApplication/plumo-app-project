@@ -38,14 +38,21 @@ import 'package:plumo/app/features/driver_trips/data/repositories/driver_trips_r
 import 'package:plumo/app/features/driver_trips/domain/repositories/driver_trips_repository.dart';
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_cubit.dart';
 
-// ... (Imports de Booking - Data/Domain) ...
+// ... (Imports de Booking) ...
 import 'package:plumo/app/features/booking/data/datasources/booking_remote_datasource.dart';
 import 'package:plumo/app/features/booking/data/datasources/booking_remote_datasource_impl.dart';
 import 'package:plumo/app/features/booking/data/repositories/booking_repository_impl.dart';
 import 'package:plumo/app/features/booking/domain/repositories/booking_repository.dart';
-
-// === IMPORT ADICIONADO (Booking Cubit) ===
 import 'package:plumo/app/features/booking/presentation/cubit/booking_cubit.dart';
+
+// ... (Imports de My Trips - Data/Domain) ...
+import 'package:plumo/app/features/my_trips/data/datasources/my_trips_remote_datasource.dart';
+import 'package:plumo/app/features/my_trips/data/datasources/my_trips_remote_datasource_impl.dart';
+import 'package:plumo/app/features/my_trips/data/repositories/my_trips_repository_impl.dart';
+import 'package:plumo/app/features/my_trips/domain/repositories/my_trips_repository.dart';
+
+// === IMPORT ADICIONADO (My Trips Cubit) ===
+import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -59,12 +66,7 @@ void setupServiceLocator() {
 
   // --== FEATURES ==--
 
-  // =GETIT irá fornecer o AuthCubit (que é um Singleton 'lazy' ou 'factory')
-  // para o construtor do BookingCubit
-
   // ================== AUTH (Autenticação) ==================
-  // ATENÇÃO: Mudei AuthCubit para 'lazySingleton'
-  // para que o BookingCubit possa encontrá-lo.
   sl.registerLazySingleton(
     () => AuthCubit(authRepository: sl(), profileRepository: sl()),
   );
@@ -102,7 +104,7 @@ void setupServiceLocator() {
     () => CreateTripRemoteDataSourceImpl(supabaseClient: sl()),
   );
 
-  // ================== DRIVER TRIPS (Minhas Viagens) ==================
+  // ================== DRIVER TRIPS (Minhas Viagens - Motorista) ==================
   sl.registerFactory(() => DriverTripsCubit(driverTripsRepository: sl()));
   sl.registerLazySingleton<DriverTripsRepository>(
     () => DriverTripsRepositoryImpl(remoteDataSource: sl()),
@@ -112,22 +114,29 @@ void setupServiceLocator() {
   );
 
   // ================== BOOKING (Reserva) ==================
-  // Presentation (Cubit)
   sl.registerFactory(
-    () => BookingCubit(
-      bookingRepository: sl(),
-      authCubit: sl(), // <-- Injeta o AuthCubit (agora Singleton)
-    ),
+    () => BookingCubit(bookingRepository: sl(), authCubit: sl()),
   );
-
-  // Repository (Gerente)
   sl.registerLazySingleton<BookingRepository>(
     () => BookingRepositoryImpl(remoteDataSource: sl()),
   );
-
-  // DataSource (Trabalhador)
   sl.registerLazySingleton<BookingRemoteDataSource>(
     () => BookingRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // ================== MY TRIPS (Reservas do Passageiro) ==================
+  // Presentation (Cubit)
+  sl.registerFactory(() => MyTripsCubit(myTripsRepository: sl()));
+  // ------------------------
+
+  // Repository (Gerente)
+  sl.registerLazySingleton<MyTripsRepository>(
+    () => MyTripsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // DataSource (Trabalhador)
+  sl.registerLazySingleton<MyTripsRemoteDataSource>(
+    () => MyTripsRemoteDataSourceImpl(supabaseClient: sl()),
   );
   // ========================
 }

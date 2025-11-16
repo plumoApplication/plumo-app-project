@@ -1,4 +1,5 @@
 import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
+import 'package:plumo/app/features/driver_create_trip/data/models/trip_model.dart';
 
 // O Modelo de Dados que sabe ler/escrever no Supabase
 class BookingModel extends BookingEntity {
@@ -13,6 +14,7 @@ class BookingModel extends BookingEntity {
     required super.destinationWaypointId,
     super.paymentId,
     super.createdAt,
+    super.trip,
   });
 
   /// Construtor de fábrica: 'fromMap' (Lê do Supabase)
@@ -23,12 +25,14 @@ class BookingModel extends BookingEntity {
       passengerId: map['passenger_id'] as String,
       driverId: map['driver_id'] as String,
       status: map['status'] as String,
-      // Converte 'numeric' (que vem como double ou String)
       totalPrice: double.parse(map['total_price'].toString()),
       originWaypointId: map['origin_waypoint_id'] as String,
       destinationWaypointId: map['destination_waypoint_id'] as String,
       paymentId: map['payment_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
+      trip: map['trips'] == null
+          ? null
+          : TripModel.fromMap(map['trips'] as Map<String, dynamic>),
     );
   }
 
