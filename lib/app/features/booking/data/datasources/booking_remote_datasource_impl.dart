@@ -54,4 +54,37 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
     }
   }
+
+  @override
+  Future<List<BookingModel>> getDriverPendingBookings() async {
+    try {
+      final driverId = supabaseClient.auth.currentUser?.id;
+      if (driverId == null) {
+        throw ServerException(message: 'Usuário não autenticado.');
+      }
+
+      // CONSULTA PODEROSA:
+      // 1. Traz dados da Reserva (*)
+      // 2. Traz dados da Viagem (trips) e seus Waypoints (aninhados)
+      // 3. Traz dados do Passageiro (renomeado para 'passenger' via FK passenger_id)
+      final response = await supabaseClient
+          .from('bookings')
+          .select(
+            '*, trips(*, trip_waypoints(*)), passenger:profiles!passenger_id(*)',
+          )
+          .eq('driver_id', driverId) // Onde eu sou o motorista
+          .eq('status', 'requested') // Apenas solicitadas (pendentes)
+          .order('created_at', ascending: false);
+
+      final List<BookingModel> bookings = response
+          .map((map) => BookingModel.fromMap(map))
+          .toList();
+
+      return bookings;
+    } catch (e) {
+      throw ServerException(
+        message: 'Erro ao buscar solicitações: ${e.toString()}',
+      );
+    }
+  }
 }

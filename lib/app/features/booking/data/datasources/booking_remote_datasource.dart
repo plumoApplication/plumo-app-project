@@ -8,10 +8,10 @@ abstract class BookingRemoteDataSource {
   /// Lança [ServerException] se falhar.
   Future<void> createBooking(BookingModel booking);
 
-  /// Atualiza a coluna 'status' de uma reserva na tabela 'bookings'.
-  /// Lança [ServerException] se falhar.
   Future<void> updateBookingStatus({
     required String bookingId,
     required String newStatus,
   });
+
+  Future<List<BookingModel>> getDriverPendingBookings();
 }

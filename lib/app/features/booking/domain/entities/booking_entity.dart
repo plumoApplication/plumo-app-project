@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entity.dart';
+import 'package:plumo/app/features/profile/domain/entities/profile_entity.dart';
 
 // Esta é a Entidade de Domínio "limpa"
 class BookingEntity extends Equatable {
@@ -14,6 +15,7 @@ class BookingEntity extends Equatable {
   final String? paymentId; // Nulo até ser pago
   final DateTime? createdAt;
   final TripEntity? trip;
+  final ProfileEntity? passengerProfile;
 
   const BookingEntity({
     this.id,
@@ -27,6 +29,7 @@ class BookingEntity extends Equatable {
     this.paymentId,
     this.createdAt,
     this.trip,
+    this.passengerProfile,
   });
 
   @override
@@ -42,5 +45,6 @@ class BookingEntity extends Equatable {
     paymentId,
     createdAt,
     trip,
+    passengerProfile,
   ];
 }

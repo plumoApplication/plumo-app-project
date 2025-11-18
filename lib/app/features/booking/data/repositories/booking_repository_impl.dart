@@ -60,4 +60,20 @@ class BookingRepositoryImpl implements BookingRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, List<BookingEntity>>>
+  getDriverPendingBookings() async {
+    try {
+      // 1. Chama o DataSource para buscar a lista de Modelos
+      final bookingModels = await remoteDataSource.getDriverPendingBookings();
+
+      // 2. Retorna Sucesso (Right)
+      // (A lista de modelos é compatível com a lista de entidades)
+      return Right(bookingModels);
+    } on ServerException catch (e) {
+      // 3. Trata o erro
+      return Left(ServerFailure(message: e.message));
+    }
+  }
 }

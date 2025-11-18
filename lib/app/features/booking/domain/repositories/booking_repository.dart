@@ -17,6 +17,5 @@ abstract class BookingRepository {
     required String newStatus,
   });
 
-  // (No futuro, adicionaremos 'getMyBookings' aqui
-  //  para o passageiro ver suas reservas)
+  Future<Either<Failure, List<BookingEntity>>> getDriverPendingBookings();
 }

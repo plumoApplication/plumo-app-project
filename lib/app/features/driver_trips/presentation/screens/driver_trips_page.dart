@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
-// Importamos o Cubit e o State
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_cubit.dart';
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_state.dart';
-// Importamos a Entidade
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entity.dart';
-import 'package:intl/intl.dart'; // Para formatar a data
+import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
+import 'package:intl/intl.dart';
 
 class DriverTripsPage extends StatelessWidget {
   const DriverTripsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 1. Fornecemos o 'DriverTripsCubit'
     return BlocProvider(
-      create: (context) =>
-          sl<DriverTripsCubit>()
-            ..fetchMyTrips(), // 2. Chamamos a busca assim que o Cubit é criado
+      create: (context) => sl<DriverTripsCubit>()..fetchMyTrips(),
       child: const _DriverTripsView(),
     );
   }
@@ -28,16 +24,13 @@ class _DriverTripsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 3. O 'BlocBuilder' reconstrói a UI baseada no estado
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minhas Viagens (Motorista)'),
-        // Adiciona um botão de "Atualizar"
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Chama o Cubit para buscar novamente
               context.read<DriverTripsCubit>().fetchMyTrips();
             },
           ),
@@ -45,18 +38,16 @@ class _DriverTripsView extends StatelessWidget {
       ),
       body: BlocBuilder<DriverTripsCubit, DriverTripsState>(
         builder: (context, state) {
-          // --- Estado de Carregamento ---
           if (state is DriverTripsLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // --- Estado de Erro ---
           if (state is DriverTripsError) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Erro ao buscar viagens: ${state.message}',
+                  'Erro: ${state.message}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.red),
                 ),
@@ -64,47 +55,173 @@ class _DriverTripsView extends StatelessWidget {
             );
           }
 
-          // --- Estado de Sucesso ---
           if (state is DriverTripsSuccess) {
-            // Se a lista de viagens estiver vazia
-            if (state.trips.isEmpty) {
-              return const Center(
-                child: Text('Você ainda não criou nenhuma viagem.'),
-              );
-            }
-
-            // Se temos viagens, mostramos a lista
-            return ListView.builder(
-              itemCount: state.trips.length,
-              itemBuilder: (context, index) {
-                final trip = state.trips[index];
-                return _buildTripCard(context, trip);
+            // Usamos um SingleChildScrollView com Column para mostrar as duas listas
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<DriverTripsCubit>().fetchMyTrips();
               },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 80),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- SEÇÃO 1: SOLICITAÇÕES PENDENTES ---
+                    if (state.pendingRequests.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          'Solicitações Pendentes (${state.pendingRequests.length})',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
+                      ListView.builder(
+                        shrinkWrap: true, // Importante dentro de Column
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: state.pendingRequests.length,
+                        itemBuilder: (context, index) {
+                          final request = state.pendingRequests[index];
+                          return _buildRequestCard(context, request);
+                        },
+                      ),
+                      const Divider(height: 32, thickness: 1),
+                    ],
+
+                    // --- SEÇÃO 2: MINHAS VIAGENS CRIADAS ---
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Minhas Viagens Criadas',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+
+                    if (state.trips.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Text('Você ainda não criou viagens.'),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: state.trips.length,
+                        itemBuilder: (context, index) {
+                          final trip = state.trips[index];
+                          return _buildTripCard(context, trip);
+                        },
+                      ),
+                  ],
+                ),
+              ),
             );
           }
 
-          // Estado inicial (não deve acontecer, pois começamos no Loading)
           return const Center(child: Text('Inicializando...'));
         },
       ),
     );
   }
 
-  /// Widget auxiliar para construir o Card de cada Viagem
+  // --- WIDGET DE SOLICITAÇÃO (Novo) ---
+  Widget _buildRequestCard(BuildContext context, BookingEntity booking) {
+    // Dados do passageiro
+    final passengerName =
+        booking.passengerProfile?.fullName ?? 'Passageiro Desconhecido';
+
+    // (Nota: O 'trip' vem do JOIN que fizemos no DataSource)
+    final tripOrigin = booking.trip?.originName ?? '?';
+    final tripDest = booking.trip?.destinationName ?? '?';
+
+    final price = NumberFormat.simpleCurrency(
+      locale: 'pt_BR',
+    ).format(booking.totalPrice);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      color: Colors.orange.shade50, // Cor de destaque leve
+      elevation: 3.0,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person, color: Colors.orange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    passengerName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Text(
+                  price,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Rota da Viagem: $tripOrigin → $tripDest'),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // Botão RECUSAR
+                OutlinedButton(
+                  onPressed: () {
+                    // Chama o Cubit para recusar
+                    context.read<DriverTripsCubit>().denyRequest(booking.id!);
+                  },
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Recusar'),
+                ),
+                const SizedBox(width: 12),
+                // Botão APROVAR
+                ElevatedButton(
+                  onPressed: () {
+                    // Chama o Cubit para aprovar
+                    context.read<DriverTripsCubit>().approveRequest(
+                      booking.id!,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: const Text(
+                    'Aprovar',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTripCard(BuildContext context, TripEntity trip) {
     final originName = trip.originName ?? 'Origem Desconhecida';
     final destinationName = trip.destinationName ?? 'Destino Desconhecido';
-
-    // --- LÓGICA ADICIONADA (Sua Sugestão) ---
-    // Calcula o número de paradas *intermediárias*
-    // (Total de waypoints - 2 (Origem e Destino))
     final int intermediateStops = trip.waypoints.length - 2;
-    // ----------------------------------------
-
-    // Formata a data (ex: 12/11/2025, 14:30)
     final formattedDate = DateFormat(
       'dd/MM/yyyy, HH:mm',
-    ).format(trip.departureTime.toLocal()); // Converte para hora local
+    ).format(trip.departureTime.toLocal());
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -114,16 +231,13 @@ class _DriverTripsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- ROTA (Origem -> Destino) ---
             Text(
               '$originName → $destinationName',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 2, // Permite 2 linhas para nomes longos
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 12),
-
-            // --- INFORMAÇÕES (Data, Assentos, Status) ---
             Row(
               children: [
                 const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -143,8 +257,6 @@ class _DriverTripsView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-
-            // --- LINHA ADICIONADA (Sua Sugestão) ---
             Row(
               children: [
                 const Icon(
@@ -154,7 +266,6 @@ class _DriverTripsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  // Lógica de exibição: 0, 1, ou N paradas
                   intermediateStops == 0
                       ? 'Viagem direta'
                       : '$intermediateStops parada${intermediateStops > 1 ? 's' : ''} intermediária${intermediateStops > 1 ? 's' : ''}',
@@ -162,8 +273,6 @@ class _DriverTripsView extends StatelessWidget {
                 ),
               ],
             ),
-
-            // --------------------------------------
             const SizedBox(height: 8),
             Row(
               children: [

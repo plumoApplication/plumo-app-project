@@ -105,7 +105,10 @@ void setupServiceLocator() {
   );
 
   // ================== DRIVER TRIPS (Minhas Viagens - Motorista) ==================
-  sl.registerFactory(() => DriverTripsCubit(driverTripsRepository: sl()));
+  sl.registerFactory(
+    () =>
+        DriverTripsCubit(driverTripsRepository: sl(), bookingRepository: sl()),
+  );
   sl.registerLazySingleton<DriverTripsRepository>(
     () => DriverTripsRepositoryImpl(remoteDataSource: sl()),
   );

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entity.dart';
 
 // Classe base
@@ -15,8 +16,12 @@ class DriverTripsLoading extends DriverTripsState {}
 /// (mesmo que a lista esteja vazia).
 class DriverTripsSuccess extends DriverTripsState {
   final List<TripEntity> trips;
+  final List<BookingEntity> pendingRequests;
 
-  const DriverTripsSuccess({required this.trips});
+  const DriverTripsSuccess({
+    required this.trips,
+    required this.pendingRequests,
+  });
 
   @override
   List<Object> get props => [trips];
