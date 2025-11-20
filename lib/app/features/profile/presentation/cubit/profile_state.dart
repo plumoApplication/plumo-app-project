@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:plumo/app/features/profile/domain/entities/profile_entity.dart';
 
 abstract class ProfileState extends Equatable {
   const ProfileState();
@@ -11,6 +12,13 @@ class ProfileInitial extends ProfileState {}
 class ProfileLoading extends ProfileState {}
 
 class ProfileSaved extends ProfileState {}
+
+class ProfileLoaded extends ProfileState {
+  final ProfileEntity profile;
+  const ProfileLoaded({required this.profile});
+  @override
+  List<Object> get props => [profile];
+}
 
 class ProfileError extends ProfileState {
   final String message;
