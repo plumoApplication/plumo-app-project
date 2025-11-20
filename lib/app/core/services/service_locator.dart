@@ -53,6 +53,13 @@ import 'package:plumo/app/features/my_trips/domain/repositories/my_trips_reposit
 
 // === IMPORT ADICIONADO (My Trips Cubit) ===
 import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_cubit.dart';
+
+// === IMPORTS ADICIONADOS (Feature PAYMENT) ===
+import 'package:plumo/app/features/payment/data/datasources/payment_remote_datasource.dart';
+import 'package:plumo/app/features/payment/data/datasources/payment_remote_datasource_impl.dart';
+import 'package:plumo/app/features/payment/data/repositories/payment_repository_impl.dart';
+import 'package:plumo/app/features/payment/domain/repositories/payment_repository.dart';
+import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -128,18 +135,25 @@ void setupServiceLocator() {
   );
 
   // ================== MY TRIPS (Reservas do Passageiro) ==================
-  // Presentation (Cubit)
   sl.registerFactory(() => MyTripsCubit(myTripsRepository: sl()));
-  // ------------------------
 
-  // Repository (Gerente)
   sl.registerLazySingleton<MyTripsRepository>(
     () => MyTripsRepositoryImpl(remoteDataSource: sl()),
   );
 
-  // DataSource (Trabalhador)
   sl.registerLazySingleton<MyTripsRemoteDataSource>(
     () => MyTripsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // ================== PAYMENT (Pagamento) ==================
+  sl.registerFactory(() => PaymentCubit(paymentRepository: sl()));
+
+  sl.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<PaymentRemoteDataSource>(
+    () => PaymentRemoteDataSourceImpl(supabaseClient: sl()),
   );
   // ========================
 }
