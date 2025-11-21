@@ -60,6 +60,13 @@ import 'package:plumo/app/features/payment/data/datasources/payment_remote_datas
 import 'package:plumo/app/features/payment/data/repositories/payment_repository_impl.dart';
 import 'package:plumo/app/features/payment/domain/repositories/payment_repository.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
+
+// ... (Imports de Driver Earnings) ...
+import 'package:plumo/app/features/driver_earnings/data/datasources/earnings_remote_datasource.dart';
+import 'package:plumo/app/features/driver_earnings/data/datasources/earnings_remote_datasource_impl.dart';
+import 'package:plumo/app/features/driver_earnings/data/repositories/earnings_repository_impl.dart';
+import 'package:plumo/app/features/driver_earnings/domain/repositories/earnings_repository.dart';
+import 'package:plumo/app/features/driver_earnings/presentation/cubit/driver_earnings_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -154,6 +161,17 @@ void setupServiceLocator() {
 
   sl.registerLazySingleton<PaymentRemoteDataSource>(
     () => PaymentRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // ================== DRIVER EARNINGS (Ganhos) ==================
+  sl.registerFactory(() => DriverEarningsCubit(earningsRepository: sl()));
+
+  sl.registerLazySingleton<EarningsRepository>(
+    () => EarningsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<EarningsRemoteDataSource>(
+    () => EarningsRemoteDataSourceImpl(supabaseClient: sl()),
   );
   // ========================
 }
