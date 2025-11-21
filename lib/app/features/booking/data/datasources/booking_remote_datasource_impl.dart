@@ -87,4 +87,30 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
     }
   }
+
+  @override
+  Future<String> cancelBooking(String bookingId) async {
+    try {
+      // Chama a função que criamos e fizemos deploy
+      final response = await supabaseClient.functions.invoke(
+        'cancel-booking',
+        body: {'booking_id': bookingId},
+      );
+
+      final data = response.data;
+
+      if (data == null || (data is Map && data['error'] != null)) {
+        throw ServerException(
+          message: data?['error'] ?? 'Erro desconhecido ao cancelar.',
+        );
+      }
+
+      // Retorna a mensagem de sucesso (ex: "Cancelado com reembolso...")
+      return data['message'] as String;
+    } catch (e) {
+      throw ServerException(
+        message: 'Erro ao processar cancelamento: ${e.toString()}',
+      );
+    }
+  }
 }

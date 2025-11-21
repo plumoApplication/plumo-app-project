@@ -65,4 +65,25 @@ class BookingCubit extends Cubit<BookingState> {
       );
     }
   }
+
+  /// Método chamado pela UI para cancelar uma reserva
+  Future<void> cancelBooking(String bookingId) async {
+    try {
+      emit(BookingCancellationLoading());
+
+      final result = await bookingRepository.cancelBooking(bookingId);
+
+      result.fold(
+        (failure) => emit(BookingError(message: failure.message)),
+        (message) => emit(BookingCancellationSuccess(message: message)),
+      );
+    } catch (e) {
+      emit(BookingError(message: 'Erro inesperado: ${e.toString()}'));
+    }
+  }
+
+  // (Opcional: Reset para limpar estados de sucesso)
+  void reset() {
+    emit(BookingInitial());
+  }
 }

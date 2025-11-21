@@ -18,4 +18,6 @@ abstract class BookingRepository {
   });
 
   Future<Either<Failure, List<BookingEntity>>> getDriverPendingBookings();
+
+  Future<Either<Failure, String>> cancelBooking(String bookingId);
 }

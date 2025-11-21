@@ -25,3 +25,14 @@ class BookingError extends BookingState {
   @override
   List<Object> get props => [message];
 }
+
+/// Carregando o cancelamento
+class BookingCancellationLoading extends BookingState {}
+
+/// Sucesso no cancelamento (retorna a mensagem da Edge Function)
+class BookingCancellationSuccess extends BookingState {
+  final String message;
+  const BookingCancellationSuccess({required this.message});
+  @override
+  List<Object> get props => [message];
+}

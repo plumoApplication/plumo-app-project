@@ -14,4 +14,6 @@ abstract class BookingRemoteDataSource {
   });
 
   Future<List<BookingModel>> getDriverPendingBookings();
+
+  Future<String> cancelBooking(String bookingId);
 }

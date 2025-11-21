@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:intl/intl.dart';
 import 'package:plumo/app/features/payment/presentation/widgets/pix_payment_modal.dart';
+import 'package:plumo/app/features/booking/presentation/screens/booking_detail_page.dart';
 
 // Imports dos Cubits
 import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_cubit.dart';
@@ -140,92 +141,113 @@ class _MyTripsView extends StatelessWidget {
       statusText = 'Confirmado / Pago';
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isApproved
-            ? const BorderSide(color: Colors.blue, width: 2)
-            : BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Rota
-            Text(
-              '$originName → $destinationName',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
+    return InkWell(
+      onTap: () async {
+        // Navega para detalhes e espera resultado (se cancelou)
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => BookingDetailPage(booking: booking),
+          ),
+        );
 
-            // Data e Preço
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(formattedDate, style: const TextStyle(color: Colors.grey)),
-                Text(
-                  formattedPrice,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+        // Se retornou 'true' (houve cancelamento/alteração), recarrega a lista
+        if (result == true && context.mounted) {
+          context.read<MyTripsCubit>().fetchMyTrips();
+        }
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: isApproved
+              ? const BorderSide(color: Colors.blue, width: 2)
+              : BorderSide.none,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Rota
+              Text(
+                '$originName → $destinationName',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-            const Divider(height: 24),
+              ),
+              const SizedBox(height: 8),
 
-            // Status e Ação
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
+              // Data e Preço
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  Text(
+                    formattedPrice,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                ),
+                ],
+              ),
+              const Divider(height: 24),
 
-                // --- BOTÃO DE PAGAR (Só aparece se Aprovado) ---
-                if (isApproved)
-                  BlocBuilder<PaymentCubit, PaymentState>(
-                    builder: (context, paymentState) {
-                      // Se estiver carregando ESTE pagamento específico...
-                      // (Nota: Esta lógica simples mostra loading em todos os botões se um estiver pagando.
-                      //  Para MVP está ok. Para prod, precisaríamos verificar o ID).
-                      if (paymentState is PaymentLoading &&
-                          paymentState.bookingId == booking.id) {
-                        return const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      }
-
-                      return ElevatedButton(
-                        onPressed: () {
-                          // Chama o Cubit para gerar o link
-                          context.read<PaymentCubit>().payWithPix(
-                            bookingId: booking.id!,
-                            title: 'Viagem para $destinationName',
-                            price: booking.totalPrice,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Pagar Agora'),
-                      );
-                    },
+              // Status e Ação
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-              ],
-            ),
-          ],
+
+                  // --- BOTÃO DE PAGAR (Só aparece se Aprovado) ---
+                  if (isApproved)
+                    BlocBuilder<PaymentCubit, PaymentState>(
+                      builder: (context, paymentState) {
+                        // Se estiver carregando ESTE pagamento específico...
+                        // (Nota: Esta lógica simples mostra loading em todos os botões se um estiver pagando.
+                        //  Para MVP está ok. Para prod, precisaríamos verificar o ID).
+                        if (paymentState is PaymentLoading &&
+                            paymentState.bookingId == booking.id) {
+                          return const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        }
+
+                        return ElevatedButton(
+                          onPressed: () {
+                            // Chama o Cubit para gerar o link
+                            context.read<PaymentCubit>().payWithPix(
+                              bookingId: booking.id!,
+                              title: 'Viagem para $destinationName',
+                              price: booking.totalPrice,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Pagar Agora'),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
