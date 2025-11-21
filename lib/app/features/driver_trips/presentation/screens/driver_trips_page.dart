@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
+import 'package:plumo/app/features/driver_trip_details/presentation/screens/driver_trip_detail_page.dart';
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_cubit.dart';
 import 'package:plumo/app/features/driver_trips/presentation/cubit/driver_trips_state.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entity.dart';
@@ -223,71 +224,87 @@ class _DriverTripsView extends StatelessWidget {
       'dd/MM/yyyy, HH:mm',
     ).format(trip.departureTime.toLocal());
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      elevation: 2.0,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$originName → $destinationName',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(formattedDate, style: const TextStyle(fontSize: 14)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.event_seat, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  '${trip.availableSeats} assentos disponíveis',
-                  style: const TextStyle(fontSize: 14),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DriverTripDetailPage(trip: trip),
+          ),
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        elevation: 2.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$originName → $destinationName',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.pin_drop_outlined,
-                  size: 16,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  intermediateStops == 0
-                      ? 'Viagem direta'
-                      : '$intermediateStops parada${intermediateStops > 1 ? 's' : ''} intermediária${intermediateStops > 1 ? 's' : ''}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.label, size: 16, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  'Status: ${trip.status}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey,
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 8),
+                  Text(formattedDate, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.event_seat, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${trip.availableSeats} assentos disponíveis',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.pin_drop_outlined,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    intermediateStops == 0
+                        ? 'Viagem direta'
+                        : '$intermediateStops parada${intermediateStops > 1 ? 's' : ''} intermediária${intermediateStops > 1 ? 's' : ''}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.label, size: 16, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Status: ${trip.status}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

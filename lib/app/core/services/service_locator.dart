@@ -67,6 +67,13 @@ import 'package:plumo/app/features/driver_earnings/data/datasources/earnings_rem
 import 'package:plumo/app/features/driver_earnings/data/repositories/earnings_repository_impl.dart';
 import 'package:plumo/app/features/driver_earnings/domain/repositories/earnings_repository.dart';
 import 'package:plumo/app/features/driver_earnings/presentation/cubit/driver_earnings_cubit.dart';
+
+// ... (Imports Driver Trip Details) ...
+import 'package:plumo/app/features/driver_trip_details/data/datasources/driver_trip_details_remote_datasource.dart';
+import 'package:plumo/app/features/driver_trip_details/data/datasources/driver_trip_details_remote_datasource_impl.dart';
+import 'package:plumo/app/features/driver_trip_details/data/repositories/driver_trip_details_repository_impl.dart';
+import 'package:plumo/app/features/driver_trip_details/domain/repositories/driver_trip_details_repository.dart';
+import 'package:plumo/app/features/driver_trip_details/presentation/cubit/driver_trip_details_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -172,6 +179,17 @@ void setupServiceLocator() {
 
   sl.registerLazySingleton<EarningsRemoteDataSource>(
     () => EarningsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // ================== DRIVER TRIP DETAILS (Detalhes da Viagem) ==================
+  sl.registerFactory(() => DriverTripDetailsCubit(repository: sl()));
+
+  sl.registerLazySingleton<DriverTripDetailsRepository>(
+    () => DriverTripDetailsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<DriverTripDetailsRemoteDataSource>(
+    () => DriverTripDetailsRemoteDataSourceImpl(supabaseClient: sl()),
   );
   // ========================
 }
