@@ -8,5 +8,8 @@ abstract class PaymentRepository {
     required String description,
     required double amount,
     required String paymentMethodId,
+    String? token,
+    int? installments,
+    String? issuerId,
   });
 }

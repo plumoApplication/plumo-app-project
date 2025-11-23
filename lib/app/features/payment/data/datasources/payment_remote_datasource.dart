@@ -6,6 +6,9 @@ abstract class PaymentRemoteDataSource {
     required String bookingId,
     required String description,
     required double amount,
-    required String paymentMethodId, // 'pix'
+    required String paymentMethodId, // 'pix' ou 'credit_card'
+    String? token,
+    int? installments,
+    String? issuerId,
   });
 }

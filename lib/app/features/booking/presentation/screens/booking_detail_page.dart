@@ -7,6 +7,7 @@ import 'package:plumo/app/features/booking/presentation/cubit/booking_cubit.dart
 import 'package:plumo/app/features/booking/presentation/cubit/booking_state.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_state.dart';
+import 'package:plumo/app/features/payment/presentation/widgets/payment_method_selector.dart';
 import 'package:plumo/app/features/payment/presentation/widgets/pix_payment_modal.dart';
 
 class BookingDetailPage extends StatelessWidget {
@@ -91,12 +92,24 @@ class _BookingDetailView extends StatelessWidget {
                 ),
               );
             }
-            if (state is PaymentPixCreated) {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => PixPaymentModal(paymentData: state.paymentData),
-              );
+            if (state is PaymentProcessed) {
+              // Se tem QR Code, é Pix -> Mostra Modal Pix
+              if (state.paymentData.qrCode != null) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) =>
+                      PixPaymentModal(paymentData: state.paymentData),
+                );
+              } else if (state.paymentData.status == 'approved') {
+                // Se status é aprovado e não tem QR Code, é Cartão -> Sucesso
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pagamento confirmado!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
               context.read<PaymentCubit>().reset();
             }
           },
@@ -157,10 +170,18 @@ class _BookingDetailView extends StatelessWidget {
                     }
                     return ElevatedButton(
                       onPressed: () {
-                        context.read<PaymentCubit>().payWithPix(
-                          bookingId: booking.id!,
-                          title: 'Viagem para $destinationName',
-                          price: booking.totalPrice,
+                        //Abre o Seletor de Método
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (_) => BlocProvider.value(
+                            value: context
+                                .read<PaymentCubit>(), // Passa o Cubit atual
+                            child: PaymentMethodSelector(
+                              bookingId: booking.id!,
+                              title: 'Viagem para $destinationName',
+                              price: booking.totalPrice,
+                            ),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(

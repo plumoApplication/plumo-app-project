@@ -17,12 +17,12 @@ class PaymentLoading extends PaymentState {
   List<Object> get props => [bookingId];
 }
 
-/// Sucesso: O pagamento Pix foi criado.
-/// Carregamos o modelo com o QR Code e o Copia-e-Cola.
-class PaymentPixCreated extends PaymentState {
+/// Sucesso: O pagamento foi processado (seja Pix ou Cartão).
+/// A UI decidirá o que mostrar baseada no 'paymentData.status' e 'paymentData.qrCode'.
+class PaymentProcessed extends PaymentState {
   final PaymentResponseModel paymentData;
 
-  const PaymentPixCreated({required this.paymentData});
+  const PaymentProcessed({required this.paymentData});
 
   @override
   List<Object> get props => [paymentData];

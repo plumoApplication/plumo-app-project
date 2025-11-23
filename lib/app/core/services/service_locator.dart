@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:plumo/app/core/constants/api_constants.dart';
+import 'package:plumo/app/core/services/mercadopago/mercadopago_service.dart';
 
 // ... (Imports de Auth) ...
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
@@ -84,6 +85,7 @@ void setupServiceLocator() {
   sl.registerSingleton<FlutterGooglePlacesSdk>(
     FlutterGooglePlacesSdk(ApiConstants.googleApiKey),
   );
+  sl.registerLazySingleton<MercadoPagoService>(() => MercadoPagoService());
 
   // --== FEATURES ==--
 
@@ -160,7 +162,9 @@ void setupServiceLocator() {
   );
 
   // ================== PAYMENT (Pagamento) ==================
-  sl.registerFactory(() => PaymentCubit(paymentRepository: sl()));
+  sl.registerFactory(
+    () => PaymentCubit(paymentRepository: sl(), mercadoPagoService: sl()),
+  );
 
   sl.registerLazySingleton<PaymentRepository>(
     () => PaymentRepositoryImpl(remoteDataSource: sl()),

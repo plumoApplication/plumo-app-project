@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:intl/intl.dart';
+import 'package:plumo/app/features/payment/presentation/widgets/payment_method_selector.dart';
 import 'package:plumo/app/features/payment/presentation/widgets/pix_payment_modal.dart';
 import 'package:plumo/app/features/booking/presentation/screens/booking_detail_page.dart';
 
@@ -50,16 +51,24 @@ class _MyTripsView extends StatelessWidget {
               ),
             );
           }
-          if (state is PaymentPixCreated) {
-            // Se o link foi gerado, abre o navegador!
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (context) =>
-                  PixPaymentModal(paymentData: state.paymentData),
-            );
-
-            // (Opcional: Resetar o cubit para limpar o estado)
+          // Se o estado for 'PaymentProcessed' (Sucesso Pix ou Cartão)
+          if (state is PaymentProcessed) {
+            // Se tem QR Code, é Pix -> Mostra Modal Pix
+            if (state.paymentData.qrCode != null) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => PixPaymentModal(paymentData: state.paymentData),
+              );
+            } else if (state.paymentData.status == 'approved') {
+              // Se status é aprovado e não tem QR Code, é Cartão -> Sucesso
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Pagamento confirmado!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
             context.read<PaymentCubit>().reset();
           }
         },
@@ -229,11 +238,17 @@ class _MyTripsView extends StatelessWidget {
 
                         return ElevatedButton(
                           onPressed: () {
-                            // Chama o Cubit para gerar o link
-                            context.read<PaymentCubit>().payWithPix(
-                              bookingId: booking.id!,
-                              title: 'Viagem para $destinationName',
-                              price: booking.totalPrice,
+                            // Abre o Seletor de Método
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (_) => BlocProvider.value(
+                                value: context.read<PaymentCubit>(),
+                                child: PaymentMethodSelector(
+                                  bookingId: booking.id!,
+                                  title: 'Viagem para $destinationName',
+                                  price: booking.totalPrice,
+                                ),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(

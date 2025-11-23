@@ -14,6 +14,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     required String description,
     required double amount,
     required String paymentMethodId,
+    String? token,
+    int? installments,
+    String? issuerId,
   }) async {
     try {
       // Precisamos do e-mail do pagador (o usuário logado)
@@ -31,6 +34,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
           'transaction_amount': amount,
           'payment_method_id': paymentMethodId, // ex: 'pix'
           'payer_email': userEmail,
+          'token': token,
+          'installments': installments,
+          'issuer_id': issuerId,
         },
       );
 

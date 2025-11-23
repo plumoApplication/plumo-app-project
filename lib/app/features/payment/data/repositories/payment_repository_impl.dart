@@ -16,6 +16,9 @@ class PaymentRepositoryImpl implements PaymentRepository {
     required String description,
     required double amount,
     required String paymentMethodId,
+    String? token,
+    int? installments,
+    String? issuerId,
   }) async {
     try {
       final result = await remoteDataSource.processPayment(
@@ -23,6 +26,9 @@ class PaymentRepositoryImpl implements PaymentRepository {
         description: description,
         amount: amount,
         paymentMethodId: paymentMethodId,
+        token: token,
+        installments: installments,
+        issuerId: issuerId,
       );
       return Right(result);
     } on ServerException catch (e) {

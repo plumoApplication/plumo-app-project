@@ -9,24 +9,27 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // --- DADOS RECEBIDOS DO FLUTTER ---
-    // Agora esperamos 'payment_method_id' ('pix' ou 'master', 'visa'...)
-    // e 'payer_email' (necessário para a API).
-    // Se for cartão, precisaremos do 'token' também (futuro).
+    // 1. Pega os dados (ATUALIZADO para receber token e parcelas)
     const { 
       transaction_amount, 
       description, 
       payment_method_id, 
       payer_email,
-      booking_id 
+      booking_id,
+      token,
+      installments,
+      issuer_id
     } = await req.json()
 
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN')
     if (!mpAccessToken) throw new Error('MP_ACCESS_TOKEN não configurado.')
 
-    // --- MONTA O CORPO DO PAGAMENTO (Checkout Transparente) ---
+    // --- 2. MONTA O CORPO DO PAGAMENTO (Checkout Transparente) ---
     const paymentData = {
       transaction_amount: Number(transaction_amount),
+      token: token,
+      installments: installments ? Number(installments) : 1,
+      issuer_id: issuer_id,
       description: description,
       payment_method_id: payment_method_id, // ex: 'pix'
       payer: {
