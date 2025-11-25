@@ -9,6 +9,9 @@ import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart
 import 'package:plumo/app/features/payment/presentation/cubit/payment_state.dart';
 import 'package:plumo/app/features/payment/presentation/widgets/payment_method_selector.dart';
 import 'package:plumo/app/features/payment/presentation/widgets/pix_payment_modal.dart';
+import 'package:plumo/app/features/reviews/presentation/cubit/reviews_cubit.dart';
+import 'package:plumo/app/features/reviews/presentation/cubit/reviews_state.dart';
+import 'package:plumo/app/features/reviews/presentation/widgets/rate_trip_modal.dart';
 
 class BookingDetailPage extends StatelessWidget {
   final BookingEntity booking;
@@ -22,6 +25,10 @@ class BookingDetailPage extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => sl<BookingCubit>()),
         BlocProvider(create: (context) => sl<PaymentCubit>()),
+        BlocProvider(
+          create: (context) =>
+              sl<ReviewsCubit>()..checkReviewStatus(booking.id!),
+        ),
       ],
       child: _BookingDetailView(booking: booking),
     );
@@ -196,6 +203,60 @@ class _BookingDetailView extends StatelessWidget {
                   },
                 ),
 
+              const SizedBox(height: 16),
+              // --- BOTÃO AVALIAR (Se Paga e NÃO avaliada) ---
+              if (isPaid)
+                BlocBuilder<ReviewsCubit, ReviewsState>(
+                  builder: (context, reviewState) {
+                    // --- LÓGICA INVERTIDA (Sem Flash) ---
+
+                    // 1. Se ainda não sabemos (Initial) ou está carregando,
+                    // NÃO mostre o botão. Espere a resposta.
+                    if (reviewState is ReviewsInitial ||
+                        reviewState is ReviewsLoading) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // 2. Se já temos a resposta da verificação
+                    if (reviewState is ReviewStatusChecked) {
+                      if (reviewState.hasReviewed) {
+                        // Já avaliou: Continue escondido
+                        return const SizedBox.shrink();
+                      }
+                      // Não avaliou: Pode mostrar o botão (fall through)
+                    }
+
+                    // 3. Se acabou de enviar com sucesso, esconde
+                    if (reviewState is ReviewsSuccess) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // 4. Se chegamos aqui, é seguro mostrar o botão
+                    // (Estado é ReviewStatusChecked(false) ou ReviewsError)
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.star_outline),
+                        label: const Text('Avaliar Viagem'),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
+                            ),
+                            builder: (_) => BlocProvider.value(
+                              value: context.read<ReviewsCubit>(),
+                              child: RateTripModal(booking: booking),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               const SizedBox(height: 16),
 
               // --- BOTÃO CANCELAR (Se Ativo) ---

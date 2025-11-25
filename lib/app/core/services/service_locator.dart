@@ -75,6 +75,13 @@ import 'package:plumo/app/features/driver_trip_details/data/datasources/driver_t
 import 'package:plumo/app/features/driver_trip_details/data/repositories/driver_trip_details_repository_impl.dart';
 import 'package:plumo/app/features/driver_trip_details/domain/repositories/driver_trip_details_repository.dart';
 import 'package:plumo/app/features/driver_trip_details/presentation/cubit/driver_trip_details_cubit.dart';
+
+// ... (Imports Feature REVIEWS) ===
+import 'package:plumo/app/features/reviews/data/datasources/reviews_remote_datasource.dart';
+import 'package:plumo/app/features/reviews/data/datasources/reviews_remote_datasource_impl.dart';
+import 'package:plumo/app/features/reviews/data/repositories/reviews_repository_impl.dart';
+import 'package:plumo/app/features/reviews/domain/repositories/reviews_repository.dart';
+import 'package:plumo/app/features/reviews/presentation/cubit/reviews_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -194,6 +201,22 @@ void setupServiceLocator() {
 
   sl.registerLazySingleton<DriverTripDetailsRemoteDataSource>(
     () => DriverTripDetailsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // ================== REVIEWS (Avaliações) ==================
+  sl.registerLazySingleton<ReviewsRepository>(
+    () => ReviewsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<ReviewsRemoteDataSource>(
+    () => ReviewsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  sl.registerFactory(
+    () => ReviewsCubit(
+      reviewsRepository: sl(),
+      authCubit: sl(), // <-- Injeta o AuthCubit
+    ),
   );
   // ========================
 }
