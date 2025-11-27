@@ -6,6 +6,7 @@ import 'package:plumo/app/features/auth/presentation/screens/login_page.dart';
 import 'package:plumo/app/features/driver_shell/presentation/screens/driver_shell.dart';
 import 'package:plumo/app/features/profile/presentation/screens/complete_profile_page.dart';
 import 'package:plumo/app/features/passenger_shell/presentation/screens/passenger_shell.dart';
+import 'package:plumo/app/features/auth/presentation/screens/reset_password_page.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -37,6 +38,10 @@ class AuthWrapper extends StatelessWidget {
             state is AuthError ||
             state is AuthSuccess) {
           return const LoginPage();
+        }
+
+        if (state is AuthRecoveringPassword) {
+          return const ResetPasswordPage();
         }
 
         // 4. Default (AuthInitial, AuthLoading)

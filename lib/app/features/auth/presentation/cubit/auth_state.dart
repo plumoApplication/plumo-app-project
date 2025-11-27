@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-// --- IMPORT ADICIONADO ---
 import 'package:plumo/app/features/profile/domain/entities/profile_entity.dart';
 
 // Classe base abstrata
@@ -53,6 +52,8 @@ class AuthError extends AuthState {
   List<Object?> get props => [message];
 }
 
+class AuthPasswordResetSent extends AuthState {}
+
 class AuthSuccess extends AuthState {
   final String message;
 
@@ -61,3 +62,5 @@ class AuthSuccess extends AuthState {
   @override
   List<Object?> get props => [message];
 }
+
+class AuthRecoveringPassword extends AuthState {}

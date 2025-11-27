@@ -1,6 +1,7 @@
 import 'package:plumo/app/core/errors/exceptions.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'dart:async';
 
 // Esta é a IMPLEMENTAÇÃO do nosso DataSource.
 // É ela quem "suja as mãos" e chama o Supabase.
@@ -78,5 +79,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         message: 'Erro ao tentar criar conta: ${e.toString()}',
       );
     }
+  }
+
+  @override
+  Future<void> resetPassword(String email) async {
+    try {
+      // A URL deve ser exata como configurada no Supabase Dashboard
+      const redirectUrl = 'io.supabase.flutter://reset-callback/';
+
+      await supabaseClient.auth.resetPasswordForEmail(
+        email,
+        redirectTo: redirectUrl,
+      );
+    } on supabase.AuthException catch (e) {
+      // Erros de API (ex: rate limit)
+      throw AuthException(message: e.message);
+    } catch (e) {
+      // Erros de rede
+      throw ServerException(message: 'Erro de conexão ao enviar e-mail.');
+    }
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await supabaseClient.auth.updateUser(
+        supabase.UserAttributes(password: newPassword),
+      );
+    } on supabase.AuthException catch (e) {
+      throw AuthException(message: e.message);
+    } catch (e) {
+      throw ServerException(message: 'Erro ao atualizar senha.');
+    }
+  }
+
+  @override
+  Stream<supabase.AuthState> get onAuthStateChange {
+    return supabaseClient.auth.onAuthStateChange;
   }
 }

@@ -3,6 +3,7 @@ import 'package:plumo/app/core/errors/exceptions.dart';
 import 'package:plumo/app/core/errors/failures.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:plumo/app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 // Esta é a IMPLEMENTAÇÃO do nosso Repositório (o "Gerente")
 // Note que ele 'implements' o contrato do DOMÍNIO (AuthRepository)
@@ -76,4 +77,32 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> resetPassword(String email) async {
+    try {
+      await remoteDataSource.resetPassword(email);
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updatePassword(String newPassword) async {
+    try {
+      await remoteDataSource.updatePassword(newPassword);
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Stream<supabase.AuthState> get onAuthStateChange =>
+      remoteDataSource.onAuthStateChange;
 }

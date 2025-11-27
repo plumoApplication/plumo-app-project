@@ -1,10 +1,9 @@
-// lib/app/features/auth/presentation/screens/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
 import 'package:plumo/app/features/auth/presentation/screens/signup_page.dart';
+import 'package:plumo/app/features/auth/presentation/screens/forgot_password_page.dart';
 
 // (Import da nossa futura tela de cadastro)
 // import 'package:plumo/app/features/auth/presentation/screens/signup_page.dart';
@@ -46,10 +45,8 @@ class _LoginPageState extends State<LoginPage> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          // 2. O 'listener' agora *não* mostra o SnackBar.
-          // Por quê? O 'context' do listener é o context "antigo".
-          // Vamos deixar o 'builder' lidar com isso.
-          // (Poderíamos mostrar, mas a abordagem do builder é mais segura)
+          // ADICIONADO: Reseta para Unauthenticated após erro para limpar a UI
+          context.read<AuthCubit>().resetState();
         }
       },
       // 3. O 'builder' agora é responsável por tudo.
@@ -122,6 +119,24 @@ class _LoginPageState extends State<LoginPage> {
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      // Navega para a nova tela dedicada
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ForgotPasswordPage(),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Esqueci a senha'),
+                            ),
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton(

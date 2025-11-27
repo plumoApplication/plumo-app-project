@@ -1,18 +1,55 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
-// --- IMPORT ADICIONADO ---
 import 'package:plumo/app/features/profile/domain/repositories/profile_repository.dart';
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;
-  // --- DEPENDÊNCIA ADICIONADA ---
   final ProfileRepository profileRepository;
+
+  late StreamSubscription _authSubscription;
 
   AuthCubit({
     required this.authRepository,
     required this.profileRepository, // <-- Injetada
-  }) : super(AuthInitial());
+  }) : super(AuthInitial()) {
+    _monitorAuthState();
+  }
+
+  void _monitorAuthState() {
+    _authSubscription = authRepository.onAuthStateChange.listen((data) {
+      final event = data.event;
+
+      if (event == AuthChangeEvent.passwordRecovery) {
+        // OPA! O usuário veio pelo link de reset.
+        emit(AuthRecoveringPassword());
+      }
+      // (Podemos tratar outros eventos aqui se quisermos, como signedOut)
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _authSubscription.cancel();
+    return super.close();
+  }
+
+  Future<void> completePasswordReset(String newPassword) async {
+    emit(AuthLoading());
+
+    // 1. Atualiza a senha (o usuário já está logado via link mágico)
+    final result = await authRepository.updatePassword(newPassword);
+
+    result.fold((failure) => emit(AuthError(message: failure.message)), (
+      _,
+    ) async {
+      // 2. SUCESSO! Agora deslogamos para ele entrar com a nova senha.
+      await authRepository.signOut();
+      emit(Unauthenticated()); // Isso levará para a LoginPage
+    });
+  }
 
   /// Nova função privada para checar o perfil
   /// Esta função é chamada DEPOIS que confirmamos que o usuário está logado.
@@ -133,6 +170,22 @@ class AuthCubit extends Cubit<AuthState> {
       // Se não há sessão, emite Deslogado
       emit(Unauthenticated());
     }
+  }
+
+  Future<void> resetPassword(String email) async {
+    emit(AuthLoading());
+
+    final result = await authRepository.resetPassword(email);
+
+    result.fold(
+      (failure) => emit(AuthError(message: failure.message)),
+      (_) => emit(AuthPasswordResetSent()),
+    );
+  }
+
+  // Método auxiliar para limpar estados (ex: voltar do sucesso para o form)
+  void resetState() {
+    emit(Unauthenticated());
   }
 
   void clearErrorState() {

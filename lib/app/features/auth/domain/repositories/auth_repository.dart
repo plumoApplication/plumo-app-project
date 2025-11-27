@@ -1,11 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:plumo/app/core/errors/failures.dart';
-// Esta é a camada de DOMÍNIO (DOMAIN)
-// É um arquivo abstrato (um "contrato")
-// Ele define O QUE o repositório de autenticação DEVE FAZER,
-// mas não COMO ele faz.
-
-// Usaremos o Supabase (na camada de DATA) para implementar este contrato.
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 abstract class AuthRepository {
   // Caso de uso: Login com E-mail e Senha
@@ -23,6 +18,12 @@ abstract class AuthRepository {
 
   // Caso de uso: Fazer Logout
   Future<Either<Failure, void>> signOut();
+
+  Future<Either<Failure, void>> resetPassword(String email);
+
+  Future<Either<Failure, void>> updatePassword(String newPassword);
+
+  Stream<supabase.AuthState> get onAuthStateChange;
 
   // Caso de uso: Verificar se há um usuário logado (ao abrir o app)
   // (Isso será importante para o "splash screen" ou "loading screen")
