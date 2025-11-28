@@ -23,6 +23,8 @@ abstract class AuthRepository {
 
   Future<Either<Failure, void>> updatePassword(String newPassword);
 
+  Future<Either<Failure, void>> signInWithGoogle();
+
   Stream<supabase.AuthState> get onAuthStateChange;
 
   // Caso de uso: Verificar se há um usuário logado (ao abrir o app)

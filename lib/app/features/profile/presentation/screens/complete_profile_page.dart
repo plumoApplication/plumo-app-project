@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
 import 'package:plumo/app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:plumo/app/features/profile/presentation/cubit/profile_state.dart';
 
@@ -125,6 +126,19 @@ class _ProfileFormState extends State<_ProfileForm> {
     _phoneController.dispose();
     _birthDateController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final authState = widget.cubitContext.read<AuthCubit>().state;
+
+    if (authState is ProfileIncomplete) {
+      // 2. Se tiver nome vindo do Google/Banco, preenche o controlador
+      if (authState.profile.fullName != null) {
+        _fullNameController.text = authState.profile.fullName!;
+      }
+    }
   }
 
   // Função chamada pelo botão "Salvar"

@@ -149,6 +149,40 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             child: const Text('Entrar'),
                           ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: const [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Text('OU'),
+                              ),
+                              Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(
+                                Icons.g_mobiledata,
+                                size: 32,
+                              ), // Ícone do Google
+                              label: const Text('Entrar com Google'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      context
+                                          .read<AuthCubit>()
+                                          .signInWithGoogle();
+                                    },
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           TextButton(
                             onPressed: isLoading

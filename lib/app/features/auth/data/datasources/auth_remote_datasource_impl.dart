@@ -1,6 +1,8 @@
 import 'package:plumo/app/core/errors/exceptions.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:plumo/app/core/constants/api_constants.dart';
 import 'dart:async';
 
 // Esta é a IMPLEMENTAÇÃO do nosso DataSource.
@@ -78,6 +80,39 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerException(
         message: 'Erro ao tentar criar conta: ${e.toString()}',
       );
+    }
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    try {
+      // 1. Instancia usando o prefixo 'gsi' para garantir que é o pacote correto
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: ApiConstants.googleWebClientId,
+        scopes: ['email', 'profile'],
+      );
+
+      // 2. Inicia o fluxo de login nativo
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // Usuário cancelou
+        return;
+      }
+
+      // 3. Obtém os tokens
+      // (O 'await' aqui é obrigatório na versão padrão do pacote)
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // 4. Envia para o Supabase
+      await supabaseClient.auth.signInWithIdToken(
+        provider: supabase.OAuthProvider.google,
+        idToken: googleAuth.idToken!, // O ID Token é o mais importante
+        accessToken: googleAuth.accessToken,
+      );
+    } catch (e) {
+      throw ServerException(message: 'Erro ao entrar com Google: $e');
     }
   }
 

@@ -23,6 +23,8 @@ abstract class AuthRemoteDataSource {
 
   Future<void> updatePassword(String newPassword);
 
+  Future<void> signInWithGoogle();
+
   Stream<AuthState> get onAuthStateChange;
 
   /// Verifica sincronicamente se existe uma sessão de usuário ativa no cliente.

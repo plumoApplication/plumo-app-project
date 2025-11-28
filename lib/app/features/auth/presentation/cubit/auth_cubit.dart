@@ -100,6 +100,18 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
+  Future<void> signInWithGoogle() async {
+    emit(AuthLoading());
+
+    final result = await authRepository.signInWithGoogle();
+
+    result.fold((failure) => emit(AuthError(message: failure.message)), (
+      _,
+    ) async {
+      await _checkProfileStatus();
+    });
+  }
+
   /// Método chamado pela UI quando o usuário clica em "Cadastrar"
   Future<void> signUp({required String email, required String password}) async {
     emit(AuthLoading());
