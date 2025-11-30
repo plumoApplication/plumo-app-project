@@ -4,6 +4,7 @@ import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
 import 'package:plumo/app/features/auth/presentation/screens/auth_wrapper.dart';
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -19,6 +20,8 @@ class App extends StatelessWidget {
         BlocProvider(create: (context) => sl<AuthCubit>()..checkAuthStatus()),
         // Fornece o TripSearchCubit (o novo Singleton)
         BlocProvider(create: (context) => sl<TripSearchCubit>()),
+        // AnnouncementsCubit (Global)
+        BlocProvider(create: (context) => sl<AnnouncementsCubit>()),
       ],
       // 2. O 'child' (filho) é o nosso MaterialApp
       child: MaterialApp(

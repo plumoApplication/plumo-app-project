@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // <-- Importado
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
-import 'package:plumo/app/core/services/service_locator.dart'; // <-- Importado
+import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:plumo/app/core/utils/debouncer.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_state.dart';
 import 'package:plumo/app/features/trip_search/presentation/screens/trip_results_page.dart';
-// ---------------------------
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_state.dart';
+import 'package:plumo/app/features/announcements/presentation/widgets/announcements_carousel.dart';
 
 /// Esta é a Aba 1 (Home) do Passageiro.
 /// Agora ela gerencia seu próprio estado de busca.
 class TripSearchPage extends StatelessWidget {
-  const TripSearchPage({super.key});
+  final String userRole;
+  const TripSearchPage({super.key, this.userRole = 'passenger'});
 
   @override
   Widget build(BuildContext context) {
-    return const _TripSearchView();
+    return _TripSearchView(userRole: userRole);
   }
 }
 
 // Convertemos o antigo StatefulWidget em um StatelessWidget interno
 class _TripSearchView extends StatefulWidget {
-  const _TripSearchView();
+  final String userRole;
+  const _TripSearchView({required this.userRole});
 
   @override
   State<_TripSearchView> createState() => _TripSearchViewState();
@@ -48,6 +52,10 @@ class _TripSearchViewState extends State<_TripSearchView> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AnnouncementsCubit>().loadAnnouncements(widget.userRole);
+    });
     // (Listeners... tudo igual)
     _originFocus.addListener(() {
       if (_originFocus.hasFocus) {
@@ -243,7 +251,6 @@ class _TripSearchViewState extends State<_TripSearchView> {
         if (state is TripSearchInitial) {
           _clearForm();
         }
-
         // 3. Se a busca deu Erro (no futuro)
         if (state is TripSearchError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -283,7 +290,23 @@ class _TripSearchViewState extends State<_TripSearchView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // (TextFormFields... tudo igual)
+                          BlocBuilder<AnnouncementsCubit, AnnouncementsState>(
+                            builder: (context, state) {
+                              if (state is AnnouncementsLoaded &&
+                                  state.announcements.isNotEmpty) {
+                                return Column(
+                                  children: [
+                                    AnnouncementsCarousel(
+                                      announcements: state.announcements,
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                );
+                              }
+                              // Se estiver carregando ou vazio, não mostra nada (ou um loader pequeno)
+                              return const SizedBox.shrink();
+                            },
+                          ),
                           TextFormField(
                             controller: _originController,
                             focusNode: _originFocus,

@@ -82,6 +82,13 @@ import 'package:plumo/app/features/reviews/data/datasources/reviews_remote_datas
 import 'package:plumo/app/features/reviews/data/repositories/reviews_repository_impl.dart';
 import 'package:plumo/app/features/reviews/domain/repositories/reviews_repository.dart';
 import 'package:plumo/app/features/reviews/presentation/cubit/reviews_cubit.dart';
+
+// ... (Imports Feature announcements) ===
+import 'package:plumo/app/features/announcements/data/datasources/announcements_remote_datasource.dart';
+import 'package:plumo/app/features/announcements/data/datasources/announcements_remote_datasource_impl.dart';
+import 'package:plumo/app/features/announcements/data/repositories/announcements_repository_impl.dart';
+import 'package:plumo/app/features/announcements/domain/repositories/announcements_repository.dart';
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -216,6 +223,21 @@ void setupServiceLocator() {
     () => ReviewsCubit(
       reviewsRepository: sl(),
       authCubit: sl(), // <-- Injeta o AuthCubit
+    ),
+  );
+
+  // ================== ANNOUNCEMENTS (Avisos) ==================
+  sl.registerLazySingleton<AnnouncementsRepository>(
+    () => AnnouncementsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<AnnouncementsRemoteDataSource>(
+    () => AnnouncementsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => AnnouncementsCubit(
+      repository: sl(), // O repositório que já registramos
     ),
   );
   // ========================
