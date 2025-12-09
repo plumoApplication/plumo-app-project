@@ -97,7 +97,7 @@ void setupServiceLocator() {
   // --== CORE ==--
   sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
   sl.registerSingleton<FlutterGooglePlacesSdk>(
-    FlutterGooglePlacesSdk(ApiConstants.googleApiKey),
+    FlutterGooglePlacesSdk(ApiConstants.googleMapsApiKey),
   );
   sl.registerLazySingleton<MercadoPagoService>(() => MercadoPagoService());
 
@@ -133,7 +133,7 @@ void setupServiceLocator() {
   );
 
   // ================== CREATE TRIP (Criar Viagem) ==================
-  sl.registerFactory(() => CreateTripCubit(createTripRepository: sl()));
+  sl.registerFactory(() => CreateTripCubit(repository: sl()));
   sl.registerLazySingleton<CreateTripRepository>(
     () => CreateTripRepositoryImpl(remoteDataSource: sl()),
   );

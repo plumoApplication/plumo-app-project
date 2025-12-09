@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "922224028149",
-    "project_id": "plumo-dev",
-    "storage_bucket": "plumo-dev.firebasestorage.app"
+    "project_number": "856392778508",
+    "project_id": "plumoapplication",
+    "storage_bucket": "plumoapplication.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:922224028149:android:e94d52a5e7b7750b5dd8bc",
+        "mobilesdk_app_id": "1:856392778508:android:9575d42e48797d1458bf29",
         "android_client_info": {
           "package_name": "com.plumoapp.plumo.dev"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "856392778508-a654k4s6pgdbnekdjm8eevpecf9fmtl6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.plumoapp.plumo.dev",
+            "certificate_hash": "4a9a6274b27f307ff7c5b257648743d5044d0f6c"
+          }
+        },
+        {
+          "client_id": "856392778508-mghteeh21canp8thipriusi7h70g33pc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyB8XZ-5P9NkMmCh3zb7_tUANpkDdnJb3g0"
+          "current_key": "AIzaSyAxzkF1xqVhxDbeCKzsIxuGD1Nrv3B6lEU"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "856392778508-mghteeh21canp8thipriusi7h70g33pc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

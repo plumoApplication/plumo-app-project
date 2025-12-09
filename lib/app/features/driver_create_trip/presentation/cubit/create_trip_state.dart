@@ -1,26 +1,124 @@
 import 'package:equatable/equatable.dart';
+import 'package:plumo/app/features/driver_create_trip/data/models/trip_waypoint_model.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-// Classe base
-abstract class CreateTripState extends Equatable {
-  const CreateTripState();
+enum CreateTripStep { basicInfo, waypoints, review }
+
+class CreateTripState extends Equatable {
+  final CreateTripStep currentStep;
+  final bool isLoading;
+  final String? errorMessage;
+  final bool isSuccess;
+
+  // --- DADOS TEMPORÁRIOS DA VIAGEM ---
+  // Origem
+  final String? originName;
+  final LatLng? originCoords;
+
+  // Destino
+  final String? destinationName;
+  final LatLng? destinationCoords;
+
+  // Detalhes
+  final DateTime? departureDate;
+  final DateTime? departureTime; // Apenas para guardar a hora
+  final int availableSeats;
+  final double totalPrice; // Valor A -> D
+  final double pickupFee; // Taxa de busca específica
+
+  // Local de Embarque (Origem)
+  final String? originBoardingName;
+  final LatLng? originBoardingCoords;
+
+  // Lista de Paradas
+  final List<TripWaypointModel> waypoints;
+
+  const CreateTripState({
+    this.currentStep = CreateTripStep.basicInfo,
+    this.isLoading = false,
+    this.errorMessage,
+    this.isSuccess = false,
+    this.originName,
+    this.originCoords,
+    this.destinationName,
+    this.destinationCoords,
+    this.departureDate,
+    this.departureTime,
+    this.availableSeats = 4, // Default
+    this.totalPrice = 0.0,
+    this.pickupFee = 0.0,
+    this.originBoardingName,
+    this.originBoardingCoords,
+    this.waypoints = const [],
+  });
+
+  // Método auxiliar para combinar Data + Hora em um único DateTime
+  DateTime? get finalDepartureDateTime {
+    if (departureDate == null || departureTime == null) return null;
+    return DateTime(
+      departureDate!.year,
+      departureDate!.month,
+      departureDate!.day,
+      departureTime!.hour,
+      departureTime!.minute,
+    );
+  }
+
+  CreateTripState copyWith({
+    CreateTripStep? currentStep,
+    bool? isLoading,
+    String? errorMessage,
+    bool? isSuccess,
+    String? originName,
+    LatLng? originCoords,
+    String? destinationName,
+    LatLng? destinationCoords,
+    DateTime? departureDate,
+    DateTime? departureTime,
+    int? availableSeats,
+    double? totalPrice,
+    double? pickupFee,
+    String? originBoardingName,
+    LatLng? originBoardingCoords,
+    List<TripWaypointModel>? waypoints,
+  }) {
+    return CreateTripState(
+      currentStep: currentStep ?? this.currentStep,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage, // Limpa o erro ao mudar estado
+      isSuccess: isSuccess ?? this.isSuccess,
+      originName: originName ?? this.originName,
+      originCoords: originCoords ?? this.originCoords,
+      destinationName: destinationName ?? this.destinationName,
+      destinationCoords: destinationCoords ?? this.destinationCoords,
+      departureDate: departureDate ?? this.departureDate,
+      departureTime: departureTime ?? this.departureTime,
+      availableSeats: availableSeats ?? this.availableSeats,
+      totalPrice: totalPrice ?? this.totalPrice,
+      pickupFee: pickupFee ?? this.pickupFee,
+      originBoardingName: originBoardingName ?? this.originBoardingName,
+      originBoardingCoords: originBoardingCoords ?? this.originBoardingCoords,
+      waypoints: waypoints ?? this.waypoints,
+    );
+  }
+
   @override
-  List<Object> get props => [];
-}
-
-/// Estado Inicial: O formulário está pronto para ser preenchido.
-class CreateTripInitial extends CreateTripState {}
-
-/// Estado de Carregamento: O usuário clicou em "Salvar Viagem"
-/// e estamos enviando os dados para o Supabase.
-class CreateTripLoading extends CreateTripState {}
-
-/// Estado de Sucesso: A viagem foi criada com sucesso.
-class CreateTripSuccess extends CreateTripState {}
-
-/// Estado de Erro: Ocorreu um erro ao tentar salvar.
-class CreateTripError extends CreateTripState {
-  final String message;
-  const CreateTripError({required this.message});
-  @override
-  List<Object> get props => [message];
+  List<Object?> get props => [
+    currentStep,
+    isLoading,
+    errorMessage,
+    isSuccess,
+    originName,
+    originCoords,
+    destinationName,
+    destinationCoords,
+    departureDate,
+    departureTime,
+    availableSeats,
+    totalPrice,
+    pickupFee,
+    originBoardingName,
+    originBoardingCoords,
+    waypoints,
+  ];
 }

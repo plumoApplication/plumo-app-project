@@ -4,7 +4,6 @@ import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_waypo
 
 class TripModel extends TripEntity {
   const TripModel({
-    // O construtor agora aceita os nulos da 'Entity'
     super.id,
     super.driverId,
     required super.departureTime,
@@ -18,56 +17,85 @@ class TripModel extends TripEntity {
     super.destinationName,
     super.destinationLat,
     super.destinationLng,
+    super.pickupFee = 0.0,
+    super.boardingPlaceName,
+    super.boardingLat,
+    super.boardingLng,
   });
 
-  /// fromMap (lendo do banco) - SEMPRE TERÁ OS DADOS (não nulos)
+  /// FROM MAP (Banco -> App)
   factory TripModel.fromMap(Map<String, dynamic> map) {
     final waypointsData = map['trip_waypoints'] as List<dynamic>? ?? [];
 
     return TripModel(
-      id: map['id'] as String,
-      driverId: map['driver_id'] as String,
+      id: map['id'] as String?,
+      driverId: map['driver_id'] as String?,
       departureTime: DateTime.parse(map['departure_time'] as String),
       availableSeats: map['available_seats'] as int,
-      status: map['status'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      status: map['status'] as String?,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'] as String)
+          : null,
       waypoints: waypointsData
           .map(
             (waypointMap) =>
                 TripWaypointModel.fromMap(waypointMap as Map<String, dynamic>),
           )
           .toList(),
-      originName: map['origin_name'] as String,
-      originLat: map['origin_lat'] as double,
-      originLng: map['origin_lng'] as double,
-      destinationName: map['destination_name'] as String,
-      destinationLat: map['destination_lat'] as double,
-      destinationLng: map['destination_lng'] as double,
+
+      // Mapeamento EXATO com o Banco
+      originName: map['origin_name'] as String?,
+      originLat: (map['origin_lat'] as num?)?.toDouble(),
+      originLng: (map['origin_lng'] as num?)?.toDouble(),
+
+      destinationName: map['destination_name'] as String?,
+      destinationLat: (map['destination_lat'] as num?)?.toDouble(),
+      destinationLng: (map['destination_lng'] as num?)?.toDouble(),
+
+      pickupFee: (map['pickup_fee'] as num?)?.toDouble() ?? 0.0,
+
+      boardingPlaceName: map['boarding_place_name'] as String?,
+      boardingLat: (map['boarding_lat'] as num?)?.toDouble(),
+      boardingLng: (map['boarding_lng'] as num?)?.toDouble(),
     );
   }
 
-  /// toMap (enviando para o banco)
+  /// TO MAP (App -> Banco)
+  /// Verifique se as chaves aqui batem com o SQL que acabamos de rodar
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final Map<String, dynamic> data = {
+      // 'id': id, // O banco gera o ID, não precisamos enviar se for novo
       'driver_id': driverId,
       'departure_time': departureTime.toIso8601String(),
       'available_seats': availableSeats,
-      'status': status,
-      'created_at': createdAt?.toIso8601String(), // <-- Lida com nulo
-      'trip_waypoints': waypoints
-          .map((waypoint) => (waypoint as TripWaypointModel).toMap())
-          .toList(),
+      'status': status ?? 'scheduled',
+      // 'created_at': ... O banco gera
+
+      // Rota Principal
       'origin_name': originName,
       'origin_lat': originLat,
       'origin_lng': originLng,
+
       'destination_name': destinationName,
       'destination_lat': destinationLat,
       'destination_lng': destinationLng,
+
+      // Extras
+      'pickup_fee': pickupFee,
+      'boarding_place_name': boardingPlaceName,
+      'boarding_lat': boardingLat,
+      'boarding_lng': boardingLng,
     };
+
+    // Remove chaves nulas para evitar problemas
+    data.removeWhere((key, value) => value == null);
+
+    // Adiciona waypoints separadamente se necessário pela lógica do repositório,
+    // mas geralmente o insert do Supabase para tabelas relacionadas é feito em duas etapas
+    // ou via JSON se a estrutura permitir. No nosso caso, o Repository trata isso.
+    return data;
   }
 
-  /// Método 'copyWith' para nos ajudar a criar a entidade
   TripModel copyWith({
     String? id,
     String? driverId,
@@ -82,6 +110,10 @@ class TripModel extends TripEntity {
     String? destinationName,
     double? destinationLat,
     double? destinationLng,
+    double? pickupFee,
+    String? boardingPlaceName,
+    double? boardingLat,
+    double? boardingLng,
   }) {
     return TripModel(
       id: id ?? this.id,
@@ -97,6 +129,10 @@ class TripModel extends TripEntity {
       destinationName: destinationName ?? this.destinationName,
       destinationLat: destinationLat ?? this.destinationLat,
       destinationLng: destinationLng ?? this.destinationLng,
+      pickupFee: pickupFee ?? this.pickupFee,
+      boardingPlaceName: boardingPlaceName ?? this.boardingPlaceName,
+      boardingLat: boardingLat ?? this.boardingLat,
+      boardingLng: boardingLng ?? this.boardingLng,
     );
   }
 }

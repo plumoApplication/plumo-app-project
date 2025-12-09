@@ -10,6 +10,9 @@ class TripWaypointEntity extends Equatable {
   final double longitude;
   final double price; // Preço da origem até este ponto
   final DateTime? createdAt;
+  final String? boardingPlaceName; // Ex: "Rodoviária"
+  final double? boardingLat;
+  final double? boardingLng;
 
   const TripWaypointEntity({
     this.id,
@@ -21,6 +24,9 @@ class TripWaypointEntity extends Equatable {
     required this.longitude,
     required this.price,
     this.createdAt,
+    this.boardingPlaceName,
+    this.boardingLat,
+    this.boardingLng,
   });
 
   @override
@@ -34,5 +40,8 @@ class TripWaypointEntity extends Equatable {
     longitude,
     price,
     createdAt,
+    boardingPlaceName,
+    boardingLat,
+    boardingLng,
   ];
 }

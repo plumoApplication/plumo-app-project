@@ -16,6 +16,10 @@ class TripEntity extends Equatable {
   final String? destinationName;
   final double? destinationLat;
   final double? destinationLng;
+  final double pickupFee; // Taxa fixa (default 0.0)
+  final String? boardingPlaceName;
+  final double? boardingLat;
+  final double? boardingLng;
 
   // Uma viagem 'contém' uma lista de pontos de parada
   final List<TripWaypointEntity> waypoints;
@@ -34,6 +38,10 @@ class TripEntity extends Equatable {
     this.destinationName,
     this.destinationLat,
     this.destinationLng,
+    this.pickupFee = 0.0, // Valor padrão
+    this.boardingPlaceName,
+    this.boardingLat,
+    this.boardingLng,
   });
 
   @override
