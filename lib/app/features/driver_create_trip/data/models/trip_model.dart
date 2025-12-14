@@ -3,6 +3,7 @@ import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entit
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_waypoint_entity.dart';
 
 class TripModel extends TripEntity {
+  final double price;
   const TripModel({
     super.id,
     super.driverId,
@@ -21,6 +22,7 @@ class TripModel extends TripEntity {
     super.boardingPlaceName,
     super.boardingLat,
     super.boardingLng,
+    this.price = 0.0,
   });
 
   /// FROM MAP (Banco -> App)
@@ -37,13 +39,9 @@ class TripModel extends TripEntity {
           ? DateTime.parse(map['created_at'] as String)
           : null,
       waypoints: waypointsData
-          .map(
-            (waypointMap) =>
-                TripWaypointModel.fromMap(waypointMap as Map<String, dynamic>),
-          )
+          .map((w) => TripWaypointModel.fromMap(w as Map<String, dynamic>))
           .toList(),
 
-      // Mapeamento EXATO com o Banco
       originName: map['origin_name'] as String?,
       originLat: (map['origin_lat'] as num?)?.toDouble(),
       originLng: (map['origin_lng'] as num?)?.toDouble(),
@@ -57,21 +55,19 @@ class TripModel extends TripEntity {
       boardingPlaceName: map['boarding_place_name'] as String?,
       boardingLat: (map['boarding_lat'] as num?)?.toDouble(),
       boardingLng: (map['boarding_lng'] as num?)?.toDouble(),
+
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   /// TO MAP (App -> Banco)
-  /// Verifique se as chaves aqui batem com o SQL que acabamos de rodar
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> data = {
-      // 'id': id, // O banco gera o ID, não precisamos enviar se for novo
       'driver_id': driverId,
       'departure_time': departureTime.toIso8601String(),
       'available_seats': availableSeats,
       'status': status ?? 'scheduled',
-      // 'created_at': ... O banco gera
 
-      // Rota Principal
       'origin_name': originName,
       'origin_lat': originLat,
       'origin_lng': originLng,
@@ -80,22 +76,20 @@ class TripModel extends TripEntity {
       'destination_lat': destinationLat,
       'destination_lng': destinationLng,
 
-      // Extras
       'pickup_fee': pickupFee,
       'boarding_place_name': boardingPlaceName,
       'boarding_lat': boardingLat,
       'boarding_lng': boardingLng,
+
+      'price': price,
     };
 
-    // Remove chaves nulas para evitar problemas
     data.removeWhere((key, value) => value == null);
 
-    // Adiciona waypoints separadamente se necessário pela lógica do repositório,
-    // mas geralmente o insert do Supabase para tabelas relacionadas é feito em duas etapas
-    // ou via JSON se a estrutura permitir. No nosso caso, o Repository trata isso.
     return data;
   }
 
+  /// COPY WITH (Método Essencial Adicionado)
   TripModel copyWith({
     String? id,
     String? driverId,
@@ -114,6 +108,7 @@ class TripModel extends TripEntity {
     String? boardingPlaceName,
     double? boardingLat,
     double? boardingLng,
+    double? price,
   }) {
     return TripModel(
       id: id ?? this.id,
@@ -133,6 +128,7 @@ class TripModel extends TripEntity {
       boardingPlaceName: boardingPlaceName ?? this.boardingPlaceName,
       boardingLat: boardingLat ?? this.boardingLat,
       boardingLng: boardingLng ?? this.boardingLng,
+      price: price ?? this.price,
     );
   }
 }

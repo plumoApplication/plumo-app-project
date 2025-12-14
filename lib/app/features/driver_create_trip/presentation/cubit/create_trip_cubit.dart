@@ -4,15 +4,14 @@ import 'package:plumo/app/features/driver_create_trip/data/models/trip_model.dar
 import 'package:plumo/app/features/driver_create_trip/data/models/trip_waypoint_model.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/repositories/create_trip_repository.dart';
 import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_state.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Para pegar o ID do user
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateTripCubit extends Cubit<CreateTripState> {
   final CreateTripRepository repository;
 
   CreateTripCubit({required this.repository}) : super(const CreateTripState());
 
-  // --- PASSO 1: DADOS BÁSICOS ---
-
+  // --- 1. DADOS BÁSICOS ---
   void updateBasicInfo({
     String? originName,
     LatLng? originCoords,
@@ -43,34 +42,28 @@ class CreateTripCubit extends Cubit<CreateTripState> {
     );
   }
 
-  // --- PASSO 2: WAYPOINTS (Com Validação de Preço) ---
-
+  // --- 2. WAYPOINTS E VALIDAÇÃO DE PREÇO ---
   String? validateWaypointPrice(double price) {
-    // Regra 1: Preço não pode ser maior ou igual ao total da viagem
+    // Regra: Não pode ser maior que o total da viagem
     if (price >= state.totalPrice) {
       return 'O valor deve ser MENOR que o total da viagem (R\$ ${state.totalPrice})';
     }
-
-    // Regra 2: Preço não pode ser menor que o ponto anterior (se houver)
+    // Regra: Tem que ser maior que o ponto anterior (Preço Cumulativo)
     if (state.waypoints.isNotEmpty) {
       final lastPrice = state.waypoints.last.price;
       if (price <= lastPrice) {
         return 'O valor deve ser MAIOR que o ponto anterior (R\$ $lastPrice)';
       }
     }
-
-    return null; // Válido
+    return null;
   }
 
   void addWaypoint(TripWaypointModel waypoint) {
-    // Validação extra de segurança
     final error = validateWaypointPrice(waypoint.price);
     if (error != null) {
       emit(state.copyWith(errorMessage: error));
       return;
     }
-
-    // Adiciona na lista
     final newList = List<TripWaypointModel>.from(state.waypoints)
       ..add(waypoint);
     emit(state.copyWith(waypoints: newList));
@@ -82,63 +75,59 @@ class CreateTripCubit extends Cubit<CreateTripState> {
     emit(state.copyWith(waypoints: newList));
   }
 
-  // --- NAVEGAÇÃO ENTRE PASSOS ---
-
+  // --- 3. NAVEGAÇÃO E CÁLCULO ---
   void nextStep() {
     if (state.currentStep == CreateTripStep.basicInfo) {
-      // Validação do Passo 1
-      if (state.originCoords == null ||
-          state.destinationCoords == null ||
-          state.finalDepartureDateTime == null ||
-          state.totalPrice <= 0) {
-        emit(
-          state.copyWith(
-            errorMessage: 'Preencha todos os campos obrigatórios.',
-          ),
-        );
+      final missingOrigin = state.originCoords == null;
+      final missingDest = state.destinationCoords == null;
+      final missingDate =
+          state.finalDepartureDateTime == null; // Cobre Data e Hora
+      final missingSeats = state.availableSeats <= 0;
+      final missingPrice = state.totalPrice <= 0;
+      final missingBoarding =
+          state.originBoardingName == null ||
+          state.originBoardingName!.trim().isEmpty;
+      if (missingOrigin ||
+          missingDest ||
+          missingDate ||
+          missingSeats ||
+          missingPrice ||
+          missingBoarding) {
+        emit(state.copyWith(errorMessage: 'Preencha os dados obrigatórios'));
         return;
       }
       emit(state.copyWith(currentStep: CreateTripStep.waypoints));
     } else if (state.currentStep == CreateTripStep.waypoints) {
-      // Vai para Revisão
       emit(state.copyWith(currentStep: CreateTripStep.review));
     }
   }
 
   void previousStep() {
-    if (state.currentStep == CreateTripStep.waypoints) {
-      emit(state.copyWith(currentStep: CreateTripStep.basicInfo));
-    } else if (state.currentStep == CreateTripStep.review) {
+    if (state.currentStep == CreateTripStep.review) {
       emit(state.copyWith(currentStep: CreateTripStep.waypoints));
+    } else if (state.currentStep == CreateTripStep.waypoints) {
+      emit(state.copyWith(currentStep: CreateTripStep.basicInfo));
     }
   }
 
-  // --- CÁLCULO DE SEGMENTOS (Para exibir na tela de Revisão) ---
+  // Lógica de Exibição dos Segmentos (A->B, B->C)
   List<String> calculateSegmentsSummary() {
     final List<String> summary = [];
 
-    // Lista completa de pontos: Origem -> W1 -> W2 -> ... -> Destino
-    // Vamos representar apenas com Nomes e Preços Acumulados
-    // Origem: Preço 0
-    // W1: Preço X
-    // Destino: Preço Total
-
-    // Como o usuário pediu: mostrar A->B, B->C, etc.
-    // Vamos iterar
-
-    // 1. Segmentos da Origem (A) para todos os pontos
+    // A -> Waypoints
     for (var wp in state.waypoints) {
       summary.add(
         'Origem ➝ ${wp.placeName}: R\$ ${wp.price.toStringAsFixed(2)}',
       );
     }
+    // A -> Destino
     summary.add('Origem ➝ Destino: R\$ ${state.totalPrice.toStringAsFixed(2)}');
 
-    // 2. Segmentos entre pontos intermediários
+    // Entre Waypoints (Cálculo da Diferença)
     for (int i = 0; i < state.waypoints.length; i++) {
       final startWp = state.waypoints[i];
 
-      // Do ponto atual para os próximos pontos
+      // Waypoint -> Próximos Waypoints
       for (int j = i + 1; j < state.waypoints.length; j++) {
         final endWp = state.waypoints[j];
         final diff = endWp.price - startWp.price;
@@ -147,18 +136,16 @@ class CreateTripCubit extends Cubit<CreateTripState> {
         );
       }
 
-      // Do ponto atual para o Destino Final
+      // Waypoint -> Destino Final
       final diffToFinal = state.totalPrice - startWp.price;
       summary.add(
         '${startWp.placeName} ➝ Destino: R\$ ${diffToFinal.toStringAsFixed(2)}',
       );
     }
-
     return summary;
   }
 
-  // --- FINALIZAÇÃO ---
-
+  // --- 4. ENVIO FINAL (Correção Crítica) ---
   Future<void> submitTrip() async {
     if (state.isLoading) return;
     emit(state.copyWith(isLoading: true));
@@ -167,17 +154,26 @@ class CreateTripCubit extends Cubit<CreateTripState> {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('Usuário não logado');
 
+      // VALIDAÇÃO CRÍTICA DE DADOS
+      if (state.originName == null || state.destinationName == null) {
+        throw Exception("Origem ou Destino não preenchidos.");
+      }
+
       final newTrip = TripModel(
         driverId: userId,
+        // Garanta que estamos usando as variáveis do STATE
+        originName: state.originName,
+        originLat: state.originCoords?.latitude,
+        originLng: state.originCoords?.longitude,
+
+        destinationName: state.destinationName,
+        destinationLat: state.destinationCoords?.latitude,
+        destinationLng: state.destinationCoords?.longitude,
+
         departureTime: state.finalDepartureDateTime!,
         availableSeats: state.availableSeats,
         status: 'scheduled',
-        originName: state.originName!,
-        originLat: state.originCoords!.latitude,
-        originLng: state.originCoords!.longitude,
-        destinationName: state.destinationName!,
-        destinationLat: state.destinationCoords!.latitude,
-        destinationLng: state.destinationCoords!.longitude,
+        price: state.totalPrice,
 
         // Novos Campos
         pickupFee: state.pickupFee,
@@ -185,11 +181,11 @@ class CreateTripCubit extends Cubit<CreateTripState> {
         boardingLat: state.originBoardingCoords?.latitude,
         boardingLng: state.originBoardingCoords?.longitude,
 
-        waypoints: state.waypoints, // A lista já está preenchida
-
+        waypoints: state.waypoints,
         createdAt: DateTime.now(),
       );
 
+      // Chama o repositório que acabamos de corrigir
       final result = await repository.createTrip(newTrip);
 
       result.fold(
@@ -203,8 +199,14 @@ class CreateTripCubit extends Cubit<CreateTripState> {
     }
   }
 
-  // Reseta para criar nova viagem
-  void reset() {
-    emit(const CreateTripState());
+  // --- MÉTODOS DE LIMPEZA ---
+  void reset() => emit(const CreateTripState());
+
+  void clearOrigin() {
+    emit(state.copyWith(clearOrigin: true));
+  }
+
+  void clearDestination() {
+    emit(state.copyWith(clearDestination: true));
   }
 }

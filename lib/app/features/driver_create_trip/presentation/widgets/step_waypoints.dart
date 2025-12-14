@@ -9,6 +9,9 @@ import 'package:plumo/app/core/utils/debouncer.dart';
 import 'package:plumo/app/features/driver_create_trip/data/models/trip_waypoint_model.dart';
 import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_cubit.dart';
 import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_state.dart';
+import 'package:flutter/services.dart'; // Para FilteringTextInputFormatter
+import 'package:plumo/app/core/utils/currency_input_formatter.dart';
+import 'package:plumo/app/features/driver_create_trip/presentation/widgets/boarding_selector.dart';
 
 class StepWaypoints extends StatefulWidget {
   const StepWaypoints({super.key});
@@ -33,6 +36,7 @@ class _StepWaypointsState extends State<StepWaypoints> {
   String? _tempPlaceName;
   String? _tempGoogleId;
   LatLng? _tempCoords;
+  LatLng? _tempBoardingCoords;
 
   void _onSearchChanged(String query) {
     if (query.isEmpty) {
@@ -48,6 +52,7 @@ class _StepWaypointsState extends State<StepWaypoints> {
         final result = await _places.findAutocompletePredictions(
           query,
           countries: ['BR'],
+          placeTypesFilter: [places.PlaceTypeFilter.CITIES],
         );
         if (!mounted) return;
         setState(() {
@@ -55,7 +60,7 @@ class _StepWaypointsState extends State<StepWaypoints> {
           _showList = true;
         });
       } catch (e) {
-        debugPrint(e.toString());
+        debugPrint('Erro busca: $e');
       }
     });
   }
@@ -105,8 +110,8 @@ class _StepWaypointsState extends State<StepWaypoints> {
       return;
     }
 
-    final price = double.tryParse(_priceController.text);
-    if (price == null) {
+    final price = CurrencyInputFormatter.parse(_priceController.text);
+    if (price <= 0) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Informe um preço válido')));
@@ -125,7 +130,8 @@ class _StepWaypointsState extends State<StepWaypoints> {
       boardingPlaceName: _boardingController.text.isNotEmpty
           ? _boardingController.text
           : null,
-      // (Poderíamos adicionar LatLng de embarque aqui também se quiséssemos um mapa para cada ponto)
+      boardingLat: _tempBoardingCoords?.latitude,
+      boardingLng: _tempBoardingCoords?.longitude,
     );
 
     // 3. Manda pro Cubit (que vai validar os preços)
@@ -140,7 +146,60 @@ class _StepWaypointsState extends State<StepWaypoints> {
     setState(() {
       _tempPlaceName = null;
       _tempCoords = null;
+      _tempBoardingCoords = null;
     });
+  }
+
+  Widget _buildPredictionList() {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 26),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      constraints: const BoxConstraints(maxHeight: 200),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ListView.separated(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          itemCount: _predictions.length,
+          separatorBuilder: (_, __) =>
+              const Divider(height: 1, color: Colors.grey),
+          itemBuilder: (context, index) {
+            final item = _predictions[index];
+
+            // Limpeza visual do texto (Remove ", Brasil")
+            String subtitle = item.secondaryText;
+            subtitle = subtitle.replaceAll(RegExp(r', Bras?il$'), '');
+
+            return ListTile(
+              dense: true,
+              leading: const Icon(Icons.location_city, color: Colors.blueGrey),
+              title: Text(
+                item.primaryText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              onTap: () => _onPredictionSelected(item),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -186,31 +245,36 @@ class _StepWaypointsState extends State<StepWaypoints> {
                     // Campo Cidade
                     TextFormField(
                       controller: _placeController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Cidade de Parada',
-                        prefixIcon: Icon(Icons.location_city),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.location_city),
+                        border: const OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
-                      ),
-                      onChanged: _onSearchChanged,
-                    ),
-                    if (_showList)
-                      Container(
-                        color: Colors.white,
-                        constraints: const BoxConstraints(maxHeight: 150),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: _predictions.length,
-                          itemBuilder: (context, index) {
-                            final item = _predictions[index];
-                            return ListTile(
-                              title: Text(item.primaryText),
-                              onTap: () => _onPredictionSelected(item),
+                        helperText:
+                            'Nesse campo digite apenas a Cidade de parada',
+                        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _placeController,
+                          builder: (context, value, child) {
+                            if (value.text.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              onPressed: () {
+                                _placeController.clear();
+                                _onSearchChanged(
+                                  '',
+                                ); // Limpa a lista de sugestões
+                              },
                             );
                           },
                         ),
                       ),
+                      onChanged: _onSearchChanged,
+                    ),
+                    if (_showList && _predictions.isNotEmpty)
+                      _buildPredictionList(),
 
                     const SizedBox(height: 12),
 
@@ -222,28 +286,48 @@ class _StepWaypointsState extends State<StepWaypoints> {
                           child: TextFormField(
                             controller: _priceController,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              CurrencyInputFormatter(),
+                            ],
                             decoration: const InputDecoration(
                               labelText: 'Preço até aqui (R\$)',
                               prefixIcon: Icon(Icons.attach_money),
                               border: OutlineInputBorder(),
                               filled: true,
                               fillColor: Colors.white,
+                              hintText: '0,00',
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _boardingController,
-                      decoration: const InputDecoration(
-                        labelText: 'Local de Embarque (Opcional)',
-                        hintText: 'Ex: Posto BR Center',
-                        prefixIcon: Icon(Icons.place),
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
+                    BoardingSelector(
+                      // Aqui usamos o controller de texto local para exibir o nome
+                      selectedName: _boardingController.text.isNotEmpty
+                          ? _boardingController.text
+                          : null,
+
+                      // Passa a coordenada da CIDADE DESTA PARADA (se já selecionada)
+                      referenceLocation: _tempCoords,
+
+                      onLocationSelected: (result) {
+                        final name = result['name'] as String;
+                        final coords = result['coords'] as LatLng;
+
+                        // Atualiza o controller local e as coordenadas do embarque
+                        setState(() {
+                          _boardingController.text = name;
+                          _tempBoardingCoords = coords;
+                        });
+                      },
+
+                      onClear: () {
+                        setState(() {
+                          _boardingController.clear();
+                        });
+                      },
                     ),
                     const SizedBox(height: 12),
 

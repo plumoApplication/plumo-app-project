@@ -81,16 +81,27 @@ class CreateTripState extends Equatable {
     String? originBoardingName,
     LatLng? originBoardingCoords,
     List<TripWaypointModel>? waypoints,
+    // --- FLAGS DE LIMPEZA ---
+    bool clearOrigin = false,
+    bool clearDestination = false,
   }) {
     return CreateTripState(
       currentStep: currentStep ?? this.currentStep,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage, // Limpa o erro ao mudar estado
       isSuccess: isSuccess ?? this.isSuccess,
-      originName: originName ?? this.originName,
-      originCoords: originCoords ?? this.originCoords,
-      destinationName: destinationName ?? this.destinationName,
-      destinationCoords: destinationCoords ?? this.destinationCoords,
+
+      // Lógica: Se clearOrigin for true, define como null.
+      // Caso contrário, tenta usar o novo valor (originName) ou mantém o antigo (this.originName).
+      originName: clearOrigin ? null : (originName ?? this.originName),
+      originCoords: clearOrigin ? null : (originCoords ?? this.originCoords),
+      destinationName: clearDestination
+          ? null
+          : (destinationName ?? this.destinationName),
+      destinationCoords: clearDestination
+          ? null
+          : (destinationCoords ?? this.destinationCoords),
+
       departureDate: departureDate ?? this.departureDate,
       departureTime: departureTime ?? this.departureTime,
       availableSeats: availableSeats ?? this.availableSeats,

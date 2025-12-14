@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart'
     as places;
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
-import 'package:plumo/app/core/presentation/widgets/map_location_picker.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
-import 'package:plumo/app/core/utils/address_formatter.dart';
+import 'package:plumo/app/core/utils/currency_input_formatter.dart';
 import 'package:plumo/app/core/utils/debouncer.dart';
 import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_cubit.dart';
+import 'package:plumo/app/features/driver_create_trip/presentation/cubit/create_trip_state.dart';
+import 'package:plumo/app/features/driver_create_trip/presentation/widgets/boarding_selector.dart';
+import 'package:plumo/app/core/utils/address_formatter.dart';
+import 'package:intl/intl.dart';
 
 class StepBasicInfo extends StatefulWidget {
   const StepBasicInfo({super.key});
@@ -22,8 +25,7 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
   final _destinationController = TextEditingController();
   final _priceController = TextEditingController();
   final _seatsController = TextEditingController(text: '4');
-  final _pickupFeeController = TextEditingController(text: '0.00');
-  final _boardingController = TextEditingController();
+  final _pickupFeeController = TextEditingController(text: '0,00');
 
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
@@ -47,15 +49,15 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
       _destinationController.text = state.destinationName!;
     }
     if (state.totalPrice > 0) {
-      _priceController.text = state.totalPrice.toString();
+      _priceController.text = CurrencyInputFormatter.formatDouble(
+        state.totalPrice,
+      );
     }
     if (state.pickupFee > 0) {
-      _pickupFeeController.text = state.pickupFee.toString();
+      _pickupFeeController.text = CurrencyInputFormatter.formatDouble(
+        state.pickupFee,
+      );
     }
-    if (state.originBoardingName != null) {
-      _boardingController.text = state.originBoardingName!;
-    }
-
     if (state.departureDate != null) {
       _dateController.text = DateFormat(
         'dd/MM/yyyy',
@@ -85,6 +87,7 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
         final result = await _places.findAutocompletePredictions(
           query,
           countries: ['BR'],
+          placeTypesFilter: [places.PlaceTypeFilter.CITIES],
         );
 
         if (!mounted) return;
@@ -162,33 +165,6 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
     }
   }
 
-  Future<void> _openMapPicker(BuildContext context) async {
-    // 1. Capturamos o Cubit ANTES de sair da tela (aqui o context é seguro)
-    final cubit = context.read<CreateTripCubit>();
-
-    // 2. Abrimos o mapa e esperamos
-    final result = await Navigator.of(context).push<LocationResult>(
-      MaterialPageRoute(builder: (context) => const MapLocationPicker()),
-    );
-
-    // 3. Verificamos se voltou com resultado
-    if (result != null) {
-      // Atualizamos a UI local (se o widget ainda existir)
-      if (mounted) {
-        setState(() {
-          _boardingController.text = "Local selecionado no Mapa";
-        });
-      }
-
-      // 4. Usamos a variável 'cubit' capturada lá em cima.
-      // Não usamos mais 'context.read', então o erro some!
-      cubit.updateBasicInfo(
-        originBoardingName: "Local selecionado no Mapa",
-        originBoardingCoords: result.coordinates,
-      );
-    }
-  }
-
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -226,22 +202,52 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
     bool isOrigin,
   ) {
     return Container(
-      color: Colors.white,
-      constraints: const BoxConstraints(maxHeight: 200),
       margin: const EdgeInsets.only(top: 4),
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemCount: predictions.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final item = predictions[index];
-          return ListTile(
-            dense: true,
-            title: Text(item.primaryText),
-            subtitle: Text(item.secondaryText),
-            onTap: () => _onPredictionSelected(item, isOrigin),
-          );
-        },
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 26),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      constraints: const BoxConstraints(maxHeight: 200),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ListView.separated(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          itemCount: predictions.length,
+          separatorBuilder: (_, __) =>
+              const Divider(height: 1, color: Colors.grey),
+          itemBuilder: (context, index) {
+            final item = predictions[index];
+
+            // Limpeza visual do texto (Remove ", Brasil")
+            String subtitle = item.secondaryText;
+            subtitle = subtitle.replaceAll(RegExp(r', Bras?il$'), '');
+
+            return ListTile(
+              dense: true,
+              leading: const Icon(Icons.location_city, color: Colors.blueGrey),
+              title: Text(
+                item.primaryText,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: Text(
+                subtitle,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              onTap: () => _onPredictionSelected(item, isOrigin),
+            );
+          },
+        ),
       ),
     );
   }
@@ -263,11 +269,26 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
 
           TextFormField(
             controller: _originController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Cidade de Origem',
-              prefixIcon: Icon(Icons.my_location),
-              border: OutlineInputBorder(),
-              helperText: 'Digite para buscar...',
+              prefixIcon: const Icon(Icons.my_location),
+              border: const OutlineInputBorder(),
+              helperText:
+                  'Digite apenas o nome da Cidade e selecione corretamente',
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _originController,
+                builder: (context, value, child) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      _originController.clear();
+                      _onSearchChanged('', true);
+                      context.read<CreateTripCubit>().clearOrigin();
+                    },
+                  );
+                },
+              ),
             ),
             onChanged: (v) => _onSearchChanged(v, true),
           ),
@@ -278,11 +299,26 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
 
           TextFormField(
             controller: _destinationController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Cidade de Destino',
-              prefixIcon: Icon(Icons.location_on),
-              border: OutlineInputBorder(),
-              helperText: 'Digite para buscar...',
+              prefixIcon: const Icon(Icons.location_on),
+              border: const OutlineInputBorder(),
+              helperText:
+                  'Digite apenas o nome da Cidade e selecione corretamente',
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _destinationController,
+                builder: (context, value, child) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      _destinationController.clear();
+                      _onSearchChanged('', false);
+                      context.read<CreateTripCubit>().clearDestination();
+                    },
+                  );
+                },
+              ),
             ),
             onChanged: (v) => _onSearchChanged(v, false),
           ),
@@ -348,13 +384,22 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
                 child: TextFormField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly, // Só aceita números
+                    CurrencyInputFormatter(), // Formata como 0,00
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Valor Total (R\$)',
                     prefixIcon: Icon(Icons.attach_money),
                     border: OutlineInputBorder(),
+                    hintText: '0,00',
                   ),
-                  onChanged: (v) =>
-                      cubit.updateBasicInfo(price: double.tryParse(v)),
+                  onChanged: (v) {
+                    final doubleVal = CurrencyInputFormatter.parse(v);
+                    context.read<CreateTripCubit>().updateBasicInfo(
+                      price: doubleVal,
+                    );
+                  },
                 ),
               ),
             ],
@@ -370,30 +415,53 @@ class _StepBasicInfoState extends State<StepBasicInfo> {
           TextFormField(
             controller: _pickupFeeController,
             keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              CurrencyInputFormatter(),
+            ],
             decoration: const InputDecoration(
               labelText: 'Taxa de Busca (R\$)',
               helperText: 'Valor extra para buscar em local específico',
               prefixIcon: Icon(Icons.add_circle_outline),
               border: OutlineInputBorder(),
+              hintText: '0,00',
             ),
-            onChanged: (v) =>
-                cubit.updateBasicInfo(pickupFee: double.tryParse(v)),
+            onChanged: (v) {
+              final doubleVal = CurrencyInputFormatter.parse(v);
+              context.read<CreateTripCubit>().updateBasicInfo(
+                pickupFee: doubleVal,
+              );
+            },
           ),
           const SizedBox(height: 16),
 
-          TextFormField(
-            controller: _boardingController,
-            decoration: InputDecoration(
-              labelText: 'Local de Embarque Padrão',
-              hintText: 'Ex: Rodoviária, Posto X...',
-              prefixIcon: const Icon(Icons.map),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.pin_drop, color: Colors.blue),
-                onPressed: () => _openMapPicker(context),
-              ),
-              border: const OutlineInputBorder(),
-            ),
-            onChanged: (v) => cubit.updateBasicInfo(originBoardingName: v),
+          BlocBuilder<CreateTripCubit, CreateTripState>(
+            builder: (context, state) {
+              return BoardingSelector(
+                selectedName: state.originBoardingName,
+                // Passa a coordenada da cidade de origem como referência para abrir o mapa
+                referenceLocation: state.originCoords,
+
+                onLocationSelected: (result) {
+                  final name = result['name'] as String;
+                  final coords = result['coords'] as LatLng;
+
+                  // Atualiza o Cubit
+                  context.read<CreateTripCubit>().updateBasicInfo(
+                    originBoardingName: name,
+                    originBoardingCoords: coords,
+                  );
+                },
+
+                onClear: () {
+                  // Limpa no Cubit
+                  context.read<CreateTripCubit>().updateBasicInfo(
+                    originBoardingName: null,
+                    originBoardingCoords: null,
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

@@ -7,64 +7,73 @@ import 'package:plumo/app/features/driver_create_trip/data/models/trip_waypoint_
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entity.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/repositories/create_trip_repository.dart';
 
-// Esta é a IMPLEMENTAÇÃO do nosso Repositório (o "Gerente")
-
 class CreateTripRepositoryImpl implements CreateTripRepository {
   final CreateTripRemoteDataSource remoteDataSource;
-  // (No futuro, poderíamos adicionar um 'NetworkInfo' para checar a internet)
 
   CreateTripRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, void>> createTrip(TripEntity trip) async {
+  Future<Either<Failure, Unit>> createTrip(TripEntity trip) async {
     try {
-      final originWaypoint = trip.waypoints.first;
-      final destinationWaypoint = trip.waypoints.last;
-      final tripModel = TripModel(
-        departureTime: trip.departureTime,
-        availableSeats: trip.availableSeats,
-        status: trip.status ?? 'scheduled', // Garante um status
-        waypoints: trip.waypoints,
-        originName: originWaypoint.placeName,
-        originLat: originWaypoint.latitude,
-        originLng: originWaypoint.longitude,
-        destinationName: destinationWaypoint.placeName,
-        destinationLat: destinationWaypoint.latitude,
-        destinationLng: destinationWaypoint.longitude,
-      );
+      // 1. Converter Entity para Model (Cast seguro pois o Cubit cria como Model)
+      // Se não for possível o cast, criamos um novo Model com os dados da Entity
+      final tripModel = trip is TripModel
+          ? trip
+          : TripModel(
+              id: trip.id,
+              driverId: trip.driverId,
+              departureTime: trip.departureTime,
+              availableSeats: trip.availableSeats,
+              status: trip.status,
+              createdAt: trip.createdAt,
+              waypoints:
+                  trip.waypoints, // Passamos a lista original por enquanto
+              originName: trip.originName,
+              originLat: trip.originLat,
+              originLng: trip.originLng,
+              destinationName: trip.destinationName,
+              destinationLat: trip.destinationLat,
+              destinationLng: trip.destinationLng,
+              pickupFee: trip.pickupFee,
+              boardingPlaceName: trip.boardingPlaceName,
+              boardingLat: trip.boardingLat,
+              boardingLng: trip.boardingLng,
+            );
 
-      // 2. CHAMA O PASSO 1 (DataSource): Criar a 'trip' principal
-      //    Isso insere na tabela 'trips' e retorna o novo 'id'
+      // 2. Passo A: Criar a Viagem Principal
       final newTripId = await remoteDataSource.createTrip(tripModel);
 
-      // 3. ATUALIZA OS WAYPOINTS EM MEMÓRIA:
-      //    Agora que temos o 'newTripId', nós o atribuímos
-      //    a cada waypoint na nossa lista.
-      final List<TripWaypointModel> waypointsWithId = [];
-      for (final wpEntity in trip.waypoints) {
-        waypointsWithId.add(
-          TripWaypointModel(
-            tripId: newTripId, // <-- A MÁGICA ACONTECE AQUI
-            order: wpEntity.order,
-            placeName: wpEntity.placeName,
-            placeGoogleId: wpEntity.placeGoogleId,
-            latitude: wpEntity.latitude,
-            longitude: wpEntity.longitude,
-            price: wpEntity.price,
-          ),
-        );
+      // 3. Passo B: Preparar Waypoints com o ID gerado
+      if (tripModel.waypoints.isNotEmpty) {
+        final List<TripWaypointModel> waypointsWithId = [];
+
+        for (final wp in tripModel.waypoints) {
+          // Converte Entity Waypoint para Model Waypoint e adiciona o ID
+          waypointsWithId.add(
+            TripWaypointModel(
+              tripId: newTripId, // VINCULA AO PAI
+              order: wp.order,
+              placeName: wp.placeName,
+              placeGoogleId: wp.placeGoogleId,
+              latitude: wp.latitude,
+              longitude: wp.longitude,
+              price: wp.price,
+              boardingPlaceName: wp.boardingPlaceName,
+              boardingLat: wp.boardingLat,
+              boardingLng: wp.boardingLng,
+            ),
+          );
+        }
+
+        // 4. Passo C: Salvar Waypoints
+        await remoteDataSource.createTripWaypoints(waypointsWithId);
       }
 
-      // 4. CHAMA O PASSO 2 (DataSource): Inserir os waypoints em lote
-      //    Agora todos os waypoints têm o 'trip_id' correto.
-      await remoteDataSource.createTripWaypoints(waypointsWithId);
-
-      // 5. Se tudo deu certo, retorna Sucesso (Right)
-      return const Right(null);
+      return const Right(unit);
     } on ServerException catch (e) {
-      // 6. Se qualquer um dos 'await' (Passo 2 ou 4) falhar,
-      //    captura a exceção e retorna Falha (Left)
       return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }
