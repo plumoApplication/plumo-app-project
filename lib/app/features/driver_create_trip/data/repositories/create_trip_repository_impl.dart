@@ -38,6 +38,7 @@ class CreateTripRepositoryImpl implements CreateTripRepository {
               boardingPlaceName: trip.boardingPlaceName,
               boardingLat: trip.boardingLat,
               boardingLng: trip.boardingLng,
+              price: trip.price,
             );
 
       // 2. Passo A: Criar a Viagem Principal

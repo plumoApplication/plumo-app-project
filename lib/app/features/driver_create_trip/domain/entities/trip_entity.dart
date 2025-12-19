@@ -20,6 +20,7 @@ class TripEntity extends Equatable {
   final String? boardingPlaceName;
   final double? boardingLat;
   final double? boardingLng;
+  final double price;
 
   // Uma viagem 'contém' uma lista de pontos de parada
   final List<TripWaypointEntity> waypoints;
@@ -42,6 +43,7 @@ class TripEntity extends Equatable {
     this.boardingPlaceName,
     this.boardingLat,
     this.boardingLng,
+    required this.price,
   });
 
   @override
@@ -59,5 +61,6 @@ class TripEntity extends Equatable {
     destinationName,
     destinationLat,
     destinationLng,
+    price,
   ];
 }

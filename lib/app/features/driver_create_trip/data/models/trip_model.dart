@@ -3,7 +3,6 @@ import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_entit
 import 'package:plumo/app/features/driver_create_trip/domain/entities/trip_waypoint_entity.dart';
 
 class TripModel extends TripEntity {
-  final double price;
   const TripModel({
     super.id,
     super.driverId,
@@ -22,7 +21,7 @@ class TripModel extends TripEntity {
     super.boardingPlaceName,
     super.boardingLat,
     super.boardingLng,
-    this.price = 0.0,
+    required super.price,
   });
 
   /// FROM MAP (Banco -> App)

@@ -1,12 +1,9 @@
-import 'package:plumo/app/core/errors/exceptions.dart';
-import 'package:plumo/app/features/driver_create_trip/data/models/trip_model.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
+import 'package:plumo/app/features/trip_search/data/models/trip_search_result_model.dart'; // Importe o novo model
 
-// Contrato dos Dados: O que o Supabase "faz"
 abstract class TripSearchRemoteDataSource {
-  /// Busca viagens no Supabase.
-  /// Lança [ServerException] se a consulta falhar.
-  Future<List<TripModel>> searchTrips({
+  /// Busca viagens ricas (com dados do motorista) no Supabase via RPC.
+  Future<List<TripSearchResultModel>> searchTrips({
     required Place origin,
     required Place destination,
     required DateTime date,

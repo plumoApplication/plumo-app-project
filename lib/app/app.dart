@@ -5,6 +5,7 @@ import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
 import 'package:plumo/app/features/auth/presentation/screens/auth_wrapper.dart';
 import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -28,6 +29,14 @@ class App extends StatelessWidget {
         title: 'Plumo',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('pt', 'BR'), // Português do Brasil
+        ],
         // O 'home' continua sendo o AuthWrapper.
         home: const AuthWrapper(),
       ),

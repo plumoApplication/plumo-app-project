@@ -124,7 +124,7 @@ void setupServiceLocator() {
   );
 
   // ================== TRIP SEARCH (Busca de Viagem) ==================
-  sl.registerLazySingleton(() => TripSearchCubit(tripSearchRepository: sl()));
+  sl.registerFactory(() => TripSearchCubit(repository: sl()));
   sl.registerLazySingleton<TripSearchRepository>(
     () => TripSearchRepositoryImpl(remoteDataSource: sl()),
   );

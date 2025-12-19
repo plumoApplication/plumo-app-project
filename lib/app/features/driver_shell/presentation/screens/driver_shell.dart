@@ -18,7 +18,7 @@ class _DriverShellState extends State<DriverShell> {
   // A lista de 5 telas (abas)
   static const List<Widget> _pages = <Widget>[
     DriverTripsPage(), // Aba 0: Gerenciar Viagens
-    TripSearchPage(userRole: 'driver'), // Aba 1: Buscar (Concorrência)
+    TripSearchPage(), // Aba 1: Buscar (Concorrência)
     DriverCreateTripPage(), // Aba 2: [+] Criar Viagem
     DriverEarningsPage(), // Aba 3: Ganhos
     ProfilePage(), // Aba 4: Perfil
