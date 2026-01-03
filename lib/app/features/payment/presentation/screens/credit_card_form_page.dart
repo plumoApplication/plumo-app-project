@@ -250,7 +250,7 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
 
                       // Dropdown de Parcelas (Simplificado para MVP: 1x a 12x)
                       DropdownButtonFormField<int>(
-                        value: _installments,
+                        initialValue: _installments,
                         decoration: const InputDecoration(
                           labelText: 'Parcelas',
                           border: OutlineInputBorder(),

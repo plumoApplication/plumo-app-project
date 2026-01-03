@@ -1,89 +1,78 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
 import 'package:plumo/app/features/booking/domain/repositories/booking_repository.dart';
 import 'package:plumo/app/features/booking/presentation/cubit/booking_state.dart';
-import 'package:plumo/app/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:plumo/app/features/auth/presentation/cubit/auth_state.dart';
-import 'package:plumo/app/features/trip_search/presentation/models/search_result_item.dart';
 
 class BookingCubit extends Cubit<BookingState> {
   final BookingRepository bookingRepository;
-  final AuthCubit authCubit; // Injetado para saber quem está logado
+  final AuthCubit authCubit;
+  // O AuthCubit pode ser útil se precisarmos pegar o ID do usuário logado aqui dentro,
+  // mas idealmente a UI já passa o BookingEntity montado.
 
   BookingCubit({required this.bookingRepository, required this.authCubit})
     : super(BookingInitial());
 
-  /// Método chamado pela UI quando o passageiro clica em "Solicitar Reserva"
-  Future<void> createBookingRequest({
-    required SearchResultItem searchResult,
-  }) async {
-    try {
-      // 1. Emite "Carregando"
-      emit(BookingLoading());
+  /// Cria uma reserva (Passageiro solicitando)
+  Future<void> createBooking({required BookingEntity booking}) async {
+    emit(BookingLoading());
 
-      // 2. Pega o estado atual do AuthCubit
-      final authState = authCubit.state;
-      if (authState is! Authenticated) {
-        emit(
-          const BookingError(
-            message: 'Você precisa estar logado para reservar.',
-          ),
-        );
-        return;
+    final result = await bookingRepository.createBooking(booking);
+
+    result.fold(
+      (failure) => emit(BookingError(message: failure.message)),
+      (_) => emit(BookingSuccess()),
+    );
+  }
+
+  /// Busca solicitações pendentes (Para o motorista aprovar)
+  Future<void> fetchPendingBookings() async {
+    emit(BookingLoading());
+
+    final result = await bookingRepository.getDriverPendingBookings();
+
+    result.fold((failure) => emit(BookingError(message: failure.message)), (
+      bookings,
+    ) {
+      if (bookings.isEmpty) {
+        emit(BookingEmpty());
+      } else {
+        emit(DriverBookingsLoaded(bookings: bookings));
       }
-
-      // 3. Monta a Entidade 'BookingEntity'
-      final BookingEntity newBooking = BookingEntity(
-        // IDs nulos (o banco de dados irá gerá-los)
-        id: null,
-        createdAt: null,
-        status: 'requested', // <-- Nosso status inicial planejado
-        paymentId: null,
-
-        // Dados da Viagem (do resultado da busca)
-        tripId: searchResult.fullTrip.id!,
-        driverId: searchResult.fullTrip.driverId!,
-        originWaypointId: searchResult.originWaypoint.id!,
-        destinationWaypointId: searchResult.destinationWaypoint.id!,
-        totalPrice: searchResult.calculatedPrice,
-
-        // Dados do Passageiro (do AuthCubit)
-        passengerId: authState.profile.id,
-      );
-
-      // 4. Chama o repositório
-      final result = await bookingRepository.createBooking(newBooking);
-
-      // 5. Processa o resultado
-      result.fold(
-        (failure) => emit(BookingError(message: failure.message)),
-        (_) => emit(BookingRequestSuccess()),
-      );
-    } catch (e) {
-      emit(
-        BookingError(message: 'Um erro inesperado ocorreu: ${e.toString()}'),
-      );
-    }
+    });
   }
 
-  /// Método chamado pela UI para cancelar uma reserva
+  /// Motorista Aceita ou Rejeita
+  Future<void> updateBookingStatus(String bookingId, String newStatus) async {
+    // Não emitimos Loading global para não piscar a tela toda,
+    // idealmente seria um loading local no card, mas por simplificação:
+    emit(BookingLoading());
+
+    final result = await bookingRepository.updateBookingStatus(
+      bookingId: bookingId,
+      newStatus: newStatus,
+    );
+
+    result.fold((failure) => emit(BookingError(message: failure.message)), (_) {
+      // Após atualizar, recarrega a lista para sumir com o item ou atualizar o status
+      fetchPendingBookings();
+    });
+  }
+
+  /// Cancelamento (Passageiro ou Motorista)
   Future<void> cancelBooking(String bookingId) async {
-    try {
-      emit(BookingCancellationLoading());
+    emit(BookingLoading());
 
-      final result = await bookingRepository.cancelBooking(bookingId);
+    final result = await bookingRepository.cancelBooking(bookingId);
 
-      result.fold(
-        (failure) => emit(BookingError(message: failure.message)),
-        (message) => emit(BookingCancellationSuccess(message: message)),
-      );
-    } catch (e) {
-      emit(BookingError(message: 'Erro inesperado: ${e.toString()}'));
-    }
+    result.fold(
+      (failure) => emit(BookingError(message: failure.message)),
+      (successMessage) => emit(BookingCancelled(message: successMessage)),
+    );
   }
 
-  // (Opcional: Reset para limpar estados de sucesso)
-  void reset() {
+  // Reseta o estado para o inicial (útil ao sair da tela)
+  void resetState() {
     emit(BookingInitial());
   }
 }

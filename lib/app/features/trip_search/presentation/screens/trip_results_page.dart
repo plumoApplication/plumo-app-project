@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:plumo/app/features/booking/presentation/screens/trip_detail_page.dart';
 import 'package:plumo/app/features/trip_search/domain/entities/trip_search_result_entity.dart';
 import 'package:plumo/app/features/trip_search/presentation/widgets/trip_result_card.dart';
-// Importaremos a tela de detalhes de reserva futuramente
-// import 'package:plumo/app/features/booking/presentation/screens/trip_detail_page.dart';
 
 class TripResultsPage extends StatelessWidget {
   final List<TripSearchResultEntity> trips;
@@ -29,31 +28,44 @@ class TripResultsPage extends StatelessWidget {
           ],
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: trips.length,
-        itemBuilder: (context, index) {
-          final trip = trips[index];
+      body: trips.isEmpty
+          ? _buildEmptyState(context)
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: trips.length,
+              itemBuilder: (context, index) {
+                final trip = trips[index];
 
-          return TripResultCard(
-            trip: trip,
-            onTap: () {
-              //Navegar para a tela de Detalhes da Reserva (Feature Booking)
-              // Exemplo:
-              /*
-              Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (_) => TripDetailPage(trip: trip))
-              );
-              */
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Clicou na viagem de ${trip.driverName}'),
-                ),
-              );
-            },
-          );
-        },
+                return TripResultCard(
+                  trip: trip,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TripDetailPage(trip: trip),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            "Nenhuma viagem encontrada.",
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }

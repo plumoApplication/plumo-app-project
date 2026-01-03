@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:plumo/app/features/driver_create_trip/data/models/trip_model.dart';
 import 'package:plumo/app/features/driver_create_trip/data/models/trip_waypoint_model.dart';
 import 'package:plumo/app/features/driver_create_trip/domain/repositories/create_trip_repository.dart';
@@ -8,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CreateTripCubit extends Cubit<CreateTripState> {
   final CreateTripRepository repository;
+  final _currencyFormat = NumberFormat.simpleCurrency(locale: 'pt_BR');
 
   CreateTripCubit({required this.repository}) : super(const CreateTripState());
 
@@ -117,11 +119,11 @@ class CreateTripCubit extends Cubit<CreateTripState> {
     // A -> Waypoints
     for (var wp in state.waypoints) {
       summary.add(
-        'Origem ➝ ${wp.placeName}: R\$ ${wp.price.toStringAsFixed(2)}',
+        'Origem ➝ ${wp.placeName}: ${_currencyFormat.format(wp.price)}',
       );
     }
     // A -> Destino
-    summary.add('Origem ➝ Destino: R\$ ${state.totalPrice.toStringAsFixed(2)}');
+    summary.add('Origem ➝ Destino:${_currencyFormat.format(state.totalPrice)}');
 
     // Entre Waypoints (Cálculo da Diferença)
     for (int i = 0; i < state.waypoints.length; i++) {
@@ -132,14 +134,14 @@ class CreateTripCubit extends Cubit<CreateTripState> {
         final endWp = state.waypoints[j];
         final diff = endWp.price - startWp.price;
         summary.add(
-          '${startWp.placeName} ➝ ${endWp.placeName}: R\$ ${diff.toStringAsFixed(2)}',
+          '${startWp.placeName} ➝ ${endWp.placeName}: ${_currencyFormat.format(diff)}',
         );
       }
 
       // Waypoint -> Destino Final
       final diffToFinal = state.totalPrice - startWp.price;
       summary.add(
-        '${startWp.placeName} ➝ Destino: R\$ ${diffToFinal.toStringAsFixed(2)}',
+        '${startWp.placeName} ➝ Destino: ${_currencyFormat.format(diffToFinal)}',
       );
     }
     return summary;
