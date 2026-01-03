@@ -20,6 +20,16 @@ class TripSearchResultEntity extends TripEntity {
     required super.price, // Este será o preço do trecho (B->C)
     super.waypoints =
         const [], // Na busca rápida, não precisamos popular os waypoints
+    super.pickupFee,
+
+    super.originLat,
+    super.originLng,
+    super.destinationLat,
+    super.destinationLng,
+
+    super.boardingPlaceName,
+    super.boardingLat,
+    super.boardingLng,
 
     required this.driverName,
     required this.driverRating,
@@ -31,6 +41,11 @@ class TripSearchResultEntity extends TripEntity {
   @override
   List<Object?> get props => [
     ...super.props,
+    driverName,
+    driverRating,
+    originalTotalPrice,
+    displayOrigin,
+    displayDestination,
     driverName,
     driverRating,
     originalTotalPrice,

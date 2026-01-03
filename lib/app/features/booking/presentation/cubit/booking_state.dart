@@ -1,38 +1,51 @@
 import 'package:equatable/equatable.dart';
+import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
 
-// Classe base
 abstract class BookingState extends Equatable {
   const BookingState();
+
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
-/// Estado Inicial: O usuário ainda não clicou em "Solicitar Reserva".
+/// Estado inicial (antes de qualquer ação)
 class BookingInitial extends BookingState {}
 
-/// Estado de Carregamento: O app está enviando a solicitação
-/// para o Supabase.
+/// Estado de carregamento (Spinner/Loading)
 class BookingLoading extends BookingState {}
 
-/// Estado de Sucesso: A solicitação de reserva foi criada com sucesso
-/// (status 'requested').
-class BookingRequestSuccess extends BookingState {}
+/// Sucesso genérico (ex: Reserva criada com sucesso)
+class BookingSuccess extends BookingState {}
 
-/// Estado de Erro: Ocorreu um erro ao tentar criar a solicitação.
+/// Erro genérico (ex: Falha na conexão)
 class BookingError extends BookingState {
   final String message;
+
   const BookingError({required this.message});
+
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }
 
-/// Carregando o cancelamento
-class BookingCancellationLoading extends BookingState {}
+/// Quando o motorista busca reservas, mas não há nenhuma pendente
+class BookingEmpty extends BookingState {}
 
-/// Sucesso no cancelamento (retorna a mensagem da Edge Function)
-class BookingCancellationSuccess extends BookingState {
-  final String message;
-  const BookingCancellationSuccess({required this.message});
+/// Quando o motorista carrega a lista de reservas pendentes com sucesso
+class DriverBookingsLoaded extends BookingState {
+  final List<BookingEntity> bookings;
+
+  const DriverBookingsLoaded({required this.bookings});
+
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [bookings];
+}
+
+/// Quando uma reserva é cancelada com sucesso (feedback para o usuário)
+class BookingCancelled extends BookingState {
+  final String message;
+
+  const BookingCancelled({required this.message});
+
+  @override
+  List<Object?> get props => [message];
 }

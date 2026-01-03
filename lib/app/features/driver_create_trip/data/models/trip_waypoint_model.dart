@@ -30,13 +30,9 @@ class TripWaypointModel extends TripWaypointEntity {
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
           : null,
-      boardingPlaceName: map['boarding_place_name'] as String?,
-      boardingLat: map['boarding_lat'] != null
-          ? (map['boarding_lat'] as num).toDouble()
-          : null,
-      boardingLng: map['boarding_lng'] != null
-          ? (map['boarding_lng'] as num).toDouble()
-          : null,
+      boardingPlaceName: map['boarding_place_name'],
+      boardingLat: (map['boarding_lat'] as num?)?.toDouble(),
+      boardingLng: (map['boarding_lng'] as num?)?.toDouble(),
     );
   }
 
