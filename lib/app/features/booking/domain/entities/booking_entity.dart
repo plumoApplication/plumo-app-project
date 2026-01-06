@@ -8,6 +8,7 @@ class BookingEntity extends Equatable {
   final String passengerId;
   final String driverId;
   final String? status;
+  final String? paymentStatus;
   final double totalPrice;
 
   final String originName;
@@ -34,6 +35,7 @@ class BookingEntity extends Equatable {
     required this.passengerId,
     required this.driverId,
     this.status,
+    this.paymentStatus,
     required this.totalPrice,
     required this.originName,
     required this.destinationName,
@@ -57,6 +59,7 @@ class BookingEntity extends Equatable {
     passengerId,
     driverId,
     status,
+    paymentStatus,
     totalPrice,
     originName,
     destinationName,

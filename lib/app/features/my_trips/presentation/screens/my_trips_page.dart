@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:intl/intl.dart';
-import 'package:plumo/app/features/payment/presentation/widgets/payment_method_selector.dart';
-import 'package:plumo/app/features/payment/presentation/widgets/pix_payment_modal.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:plumo/app/features/booking/presentation/screens/booking_detail_page.dart';
 
 // Imports dos Cubits
 import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_cubit.dart';
 import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_state.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
-import 'package:plumo/app/features/payment/presentation/cubit/payment_state.dart';
 
 // Imports das Entidades
 import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
@@ -20,12 +18,12 @@ class MyTripsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Usamos MultiBlocProvider para fornecer AMBOS os Cubits
+    // Inicializa formatação de data em PT-BR
+    initializeDateFormatting('pt_BR', null);
+
     return MultiBlocProvider(
       providers: [
-        // Cubit da Lista (carrega as viagens)
         BlocProvider(create: (context) => sl<MyTripsCubit>()..fetchMyTrips()),
-        // Cubit de Pagamento (gera o link)
         BlocProvider(create: (context) => sl<PaymentCubit>()),
       ],
       child: const _MyTripsView(),
@@ -33,236 +31,421 @@ class MyTripsPage extends StatelessWidget {
   }
 }
 
-class _MyTripsView extends StatelessWidget {
+class _MyTripsView extends StatefulWidget {
   const _MyTripsView();
+
+  @override
+  State<_MyTripsView> createState() => _MyTripsViewState();
+}
+
+class _MyTripsViewState extends State<_MyTripsView>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 3 Abas: Ativas (Confirmadas/Pendentes), Finalizadas, Canceladas
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Minhas Viagens')),
-      // 2. Adicionamos um Listener para o PAGAMENTO
-      body: BlocListener<PaymentCubit, PaymentState>(
-        listener: (context, state) {
-          if (state is PaymentError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Minhas Viagens'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Colors.black,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(text: "Ativas"),
+            Tab(text: "Finalizadas"),
+            Tab(text: "Canceladas"),
+          ],
+        ),
+      ),
+      body: BlocBuilder<MyTripsCubit, MyTripsState>(
+        builder: (context, state) {
+          if (state is MyTripsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is MyTripsError) {
+            return _buildErrorState(context, state.message);
+          }
+
+          if (state is MyTripsSuccess) {
+            // Filtragem dos dados para cada aba
+            final activeTrips = state.bookings.where((b) {
+              final s = b.status ?? '';
+              // Inclui pendentes, aprovadas e pagas
+              return s == 'pending' ||
+                  s == 'requested' ||
+                  s == 'approved' ||
+                  s == 'paid';
+            }).toList();
+
+            final finishedTrips = state.bookings.where((b) {
+              return b.status == 'finished'; // Supondo status 'finished'
+            }).toList();
+
+            final cancelledTrips = state.bookings.where((b) {
+              return b.status == 'cancelled' || b.status == 'rejected';
+            }).toList();
+
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTripList(context, activeTrips, "Nenhuma viagem ativa."),
+                _buildTripList(
+                  context,
+                  finishedTrips,
+                  "Nenhuma viagem finalizada.",
+                ),
+                _buildTripList(
+                  context,
+                  cancelledTrips,
+                  "Nenhuma viagem cancelada.",
+                ),
+              ],
             );
           }
-          // Se o estado for 'PaymentProcessed' (Sucesso Pix ou Cartão)
-          if (state is PaymentProcessed) {
-            // Se tem QR Code, é Pix -> Mostra Modal Pix
-            if (state.paymentData.qrCode != null) {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => PixPaymentModal(paymentData: state.paymentData),
-              );
-            } else if (state.paymentData.status == 'approved') {
-              // Se status é aprovado e não tem QR Code, é Cartão -> Sucesso
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Pagamento confirmado!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-            context.read<PaymentCubit>().reset();
-          }
+          return const SizedBox.shrink();
         },
-        // O Builder continua escutando a LISTA (MyTripsCubit)
-        child: BlocBuilder<MyTripsCubit, MyTripsState>(
-          builder: (context, state) {
-            if (state is MyTripsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is MyTripsError) {
-              return RefreshIndicator(
-                onRefresh: () async =>
-                    context.read<MyTripsCubit>().fetchMyTrips(),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.7,
-                    child: Center(child: Text('Erro: ${state.message}')),
-                  ),
-                ),
-              );
-            }
-
-            if (state is MyTripsSuccess) {
-              if (state.bookings.isEmpty) {
-                return const Center(child: Text('Nenhuma viagem solicitada.'));
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async =>
-                    context.read<MyTripsCubit>().fetchMyTrips(),
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: state.bookings.length,
-                  itemBuilder: (context, index) {
-                    final booking = state.bookings[index];
-                    return _buildBookingCard(context, booking);
-                  },
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
       ),
     );
   }
 
-  Widget _buildBookingCard(BuildContext context, BookingEntity booking) {
+  Widget _buildErrorState(BuildContext context, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => context.read<MyTripsCubit>().fetchMyTrips(),
+            child: const Text("Tentar Novamente"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripList(
+    BuildContext context,
+    List<BookingEntity> bookings,
+    String emptyMessage,
+  ) {
+    if (bookings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.directions_car_outlined,
+              size: 64,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              emptyMessage,
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => context.read<MyTripsCubit>().fetchMyTrips(),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: bookings.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final booking = bookings[index];
+          return _MyTripCard(booking: booking);
+        },
+      ),
+    );
+  }
+}
+
+// --- WIDGET DO CARD DE VIAGEM (Novo Design) ---
+
+class _MyTripCard extends StatelessWidget {
+  final BookingEntity booking;
+
+  const _MyTripCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
     if (booking.trip == null) return const SizedBox.shrink();
 
     final trip = booking.trip!;
-    final originName = trip.originName ?? '?';
-    final destinationName = trip.destinationName ?? '?';
-    final formattedDate = DateFormat(
-      'dd/MM/yyyy, HH:mm',
-    ).format(trip.departureTime.toLocal());
+    final displayOrigin = booking.originName;
+    final displayDestination = booking.destinationName;
+
+    // Formatação de Data
+    final date = trip.departureTime.toLocal();
+    final dayStr = DateFormat(
+      "EEEE, d 'de' MMMM",
+      "pt_BR",
+    ).format(date).replaceAll('-feira', '');
+    final formattedDate = dayStr.replaceFirst(
+      dayStr[0],
+      dayStr[0].toUpperCase(),
+    );
+    final formattedTime = DateFormat("HH:mm").format(date);
     final formattedPrice = NumberFormat.simpleCurrency(
       locale: 'pt_BR',
     ).format(booking.totalPrice);
 
-    // Verifica o status para decidir a cor e o botão
-    final isApproved = booking.status == 'approved';
-    final isRequested = booking.status == 'requested';
-    final isPaid = booking.status == 'paid';
+    // --- LÓGICA DE STATUS ---
+    final tripStatus = booking.status ?? 'pending';
+    final payStatus = booking.paymentStatus ?? 'pending';
 
-    Color statusColor = Colors.grey;
-    String statusText = booking.status ?? '';
+    Color statusColor;
+    String statusLabel;
+    bool showPaymentWarning = false;
 
-    if (isRequested) {
+    if (tripStatus == 'cancelled' || tripStatus == 'rejected') {
+      statusColor = Colors.red;
+      statusLabel = "Cancelada";
+    } else if (tripStatus == 'finished') {
+      statusColor = Colors.grey;
+      statusLabel = "Finalizada";
+    } else if (tripStatus == 'approved') {
+      if (payStatus == 'approved' ||
+          payStatus == 'paid' ||
+          payStatus == 'completed') {
+        statusColor = Colors.green;
+        statusLabel = "Confirmada";
+      } else {
+        statusColor = Colors.blue;
+        statusLabel = "Aprovada";
+        showPaymentWarning = true;
+      }
+    } else {
       statusColor = Colors.orange;
-      statusText = 'Pendente (Aguardando Motorista)';
-    } else if (isApproved) {
-      statusColor = Colors.blue;
-      statusText = 'Aprovado (Aguardando Pagamento)';
-    } else if (isPaid) {
-      statusColor = Colors.green;
-      statusText = 'Confirmado / Pago';
+      statusLabel = "Pendente";
     }
 
     return InkWell(
       onTap: () async {
-        // Navega para detalhes e espera resultado (se cancelou)
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => BookingDetailPage(booking: booking),
           ),
         );
-
-        // Se retornou 'true' (houve cancelamento/alteração), recarrega a lista
         if (result == true && context.mounted) {
           context.read<MyTripsCubit>().fetchMyTrips();
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: isApproved
-              ? const BorderSide(color: Colors.blue, width: 2)
-              : BorderSide.none,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          // [AJUSTE 4] Sombra mais destacada e difusa
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20), // Opacidade levemente maior
+              blurRadius: 15, // Mais difuso (blur maior)
+              offset: const Offset(0, 5), // Mais deslocado para baixo
+              spreadRadius: 1,
+            ),
+          ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Rota
-              Text(
-                '$originName → $destinationName',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Data e Preço
-              Row(
+        child: Column(
+          children: [
+            // HEADER
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    formattedDate,
-                    style: const TextStyle(color: Colors.grey),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "$formattedDate • $formattedTime",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    formattedPrice,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  // [AJUSTE 1] Status maior (Padding e Fonte)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
-
-              // Status e Ação
-              Row(
-                children: [
-                  Expanded(
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(26),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                     child: Text(
-                      statusText,
+                      statusLabel,
                       style: TextStyle(
                         color: statusColor,
                         fontWeight: FontWeight.bold,
+                        fontSize: 13, // Aumentado
                       ),
                     ),
                   ),
-
-                  // --- BOTÃO DE PAGAR (Só aparece se Aprovado) ---
-                  if (isApproved)
-                    BlocBuilder<PaymentCubit, PaymentState>(
-                      builder: (context, paymentState) {
-                        // Se estiver carregando ESTE pagamento específico...
-                        // (Nota: Esta lógica simples mostra loading em todos os botões se um estiver pagando.
-                        //  Para MVP está ok. Para prod, precisaríamos verificar o ID).
-                        if (paymentState is PaymentLoading &&
-                            paymentState.bookingId == booking.id) {
-                          return const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        }
-
-                        return ElevatedButton(
-                          onPressed: () {
-                            // Abre o Seletor de Método
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (_) => BlocProvider.value(
-                                value: context.read<PaymentCubit>(),
-                                child: PaymentMethodSelector(
-                                  bookingId: booking.id!,
-                                  title: 'Viagem para $destinationName',
-                                  price: booking.totalPrice,
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Pagar Agora'),
-                        );
-                      },
-                    ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            const Divider(height: 1),
+
+            // BODY (Rota)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Column(
+                    children: [
+                      const Icon(Icons.circle, size: 12, color: Colors.green),
+                      Container(
+                        width: 2,
+                        height: 32,
+                        color: Colors.grey[300],
+                      ), // Linha aumentada
+                      const Icon(
+                        Icons.circle,
+                        size: 12,
+                        color: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // [AJUSTE 3] Fontes de Origem/Destino maiores
+                        Text(
+                          displayOrigin,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ), // Espaçamento ajustado para a nova fonte
+                        Text(
+                          displayDestination,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // [AJUSTE 2] Preço maior e texto "Valor Total"
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formattedPrice,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20, // Fonte bem maior para o valor
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Valor total",
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // FOOTER (Alerta de Pagamento)
+            if (showPaymentWarning)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withAlpha(26),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Aguardando pagamento",
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Text(
+                      "Pagar",
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );
