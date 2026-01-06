@@ -9,6 +9,7 @@ class BookingModel extends BookingEntity {
     required super.passengerId,
     required super.driverId,
     super.status,
+    super.paymentStatus,
     required super.totalPrice,
     required super.originName,
     required super.destinationName,
@@ -32,6 +33,7 @@ class BookingModel extends BookingEntity {
       passengerId: map['passenger_id'] as String,
       driverId: map['driver_id'] as String,
       status: map['status'] as String?,
+      paymentStatus: map['payment_status'] as String?,
       totalPrice: double.tryParse(map['total_price'].toString()) ?? 0.0,
 
       // Mapeamento correto com o banco
@@ -75,6 +77,7 @@ class BookingModel extends BookingEntity {
       'passenger_id': passengerId,
       'driver_id': driverId,
       'status': status,
+      'payment_status': paymentStatus,
       'total_price': totalPrice,
       'origin_name': originName,
       'destination_name': destinationName,

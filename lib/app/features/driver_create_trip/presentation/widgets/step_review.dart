@@ -13,7 +13,7 @@ class StepReview extends StatelessWidget {
     // Calcula os segmentos dinamicamente
     final segments = cubit.calculateSegmentsSummary();
 
-    final _currencyFormat = NumberFormat.simpleCurrency(locale: 'pt_BR');
+    final currencyFormat = NumberFormat.simpleCurrency(locale: 'pt_BR');
 
     return BlocBuilder<CreateTripCubit, CreateTripState>(
       builder: (context, state) {
@@ -131,7 +131,7 @@ class StepReview extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Taxa de Busca Específica: + ${_currencyFormat.format(state.pickupFee)}',
+                                'Taxa de Busca Específica: + ${currencyFormat.format(state.pickupFee)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green,
