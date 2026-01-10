@@ -28,6 +28,7 @@ class BookingEntity extends Equatable {
 
   final String? message;
   final String? paymentMethod;
+  final bool isCustomPickup;
 
   const BookingEntity({
     this.id,
@@ -50,6 +51,7 @@ class BookingEntity extends Equatable {
     this.driverProfile,
     this.message,
     this.paymentMethod,
+    this.isCustomPickup = false,
   });
 
   @override
@@ -74,5 +76,6 @@ class BookingEntity extends Equatable {
     driverProfile,
     message,
     paymentMethod,
+    isCustomPickup,
   ];
 }

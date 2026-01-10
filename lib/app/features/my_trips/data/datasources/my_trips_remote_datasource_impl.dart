@@ -42,4 +42,16 @@ class MyTripsRemoteDataSourceImpl implements MyTripsRemoteDataSource {
       );
     }
   }
+
+  @override
+  Stream<List<Map<String, dynamic>>> getBookingStream() {
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null) return const Stream.empty();
+
+    // Filtra onde o passageiro é o usuário logado
+    return supabaseClient
+        .from('bookings')
+        .stream(primaryKey: ['id'])
+        .eq('passenger_id', userId);
+  }
 }

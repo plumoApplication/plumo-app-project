@@ -31,4 +31,9 @@ class MyTripsRepositoryImpl implements MyTripsRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Stream<void> getBookingStream() {
+    return remoteDataSource.getBookingStream();
+  }
 }

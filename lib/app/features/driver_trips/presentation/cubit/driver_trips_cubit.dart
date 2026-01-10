@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/booking/domain/repositories/booking_repository.dart';
 import 'package:plumo/app/features/driver_trips/domain/repositories/driver_trips_repository.dart';
@@ -9,10 +10,21 @@ class DriverTripsCubit extends Cubit<DriverTripsState> {
   final DriverTripsRepository driverTripsRepository;
   final BookingRepository bookingRepository;
 
+  StreamSubscription? _bookingSubscription;
+
   DriverTripsCubit({
     required this.driverTripsRepository,
     required this.bookingRepository,
-  }) : super(DriverTripsLoading());
+  }) : super(DriverTripsLoading()) {
+    _initRealtime();
+  }
+
+  void _initRealtime() {
+    _bookingSubscription = driverTripsRepository.getBookingStream().listen((_) {
+      // SEMPRE que o banco avisar que houve mudança, recarregamos a lista
+      fetchMyTrips();
+    });
+  }
 
   Future<void> fetchMyTrips() async {
     emit(DriverTripsLoading());
@@ -72,7 +84,7 @@ class DriverTripsCubit extends Cubit<DriverTripsState> {
 
     final result = await bookingRepository.updateBookingStatus(
       bookingId: bookingId,
-      newStatus: 'denied', // Status de Recusado
+      newStatus: 'rejected', // Status de Recusado
     );
 
     result.fold((failure) => emit(DriverTripsError(message: failure.message)), (
@@ -80,5 +92,12 @@ class DriverTripsCubit extends Cubit<DriverTripsState> {
     ) {
       fetchMyTrips();
     });
+  }
+
+  @override
+  Future<void> close() {
+    _bookingSubscription
+        ?.cancel(); // [IMPORTANTE] Cancela para não vazar memória
+    return super.close();
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:plumo/app/features/my_trips/domain/repositories/my_trips_repository.dart';
 import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_state.dart';
@@ -5,8 +6,18 @@ import 'package:plumo/app/features/my_trips/presentation/cubit/my_trips_state.da
 class MyTripsCubit extends Cubit<MyTripsState> {
   final MyTripsRepository myTripsRepository;
 
-  MyTripsCubit({required this.myTripsRepository})
-    : super(MyTripsLoading()); // Começa carregando
+  StreamSubscription? _bookingSubscription;
+
+  MyTripsCubit({required this.myTripsRepository}) : super(MyTripsLoading()) {
+    _initRealtime();
+  }
+
+  void _initRealtime() {
+    _bookingSubscription = myTripsRepository.getBookingStream().listen((_) {
+      // Recarrega a lista automaticamente quando houver mudanças
+      fetchMyTrips();
+    });
+  }
 
   /// Método chamado pela UI para buscar (ou re-buscar) as reservas
   Future<void> fetchMyTrips() async {
@@ -23,5 +34,11 @@ class MyTripsCubit extends Cubit<MyTripsState> {
       // 3b. Se deu 'Right' (Sucesso)
       (bookings) => emit(MyTripsSuccess(bookings: bookings)),
     );
+  }
+
+  @override
+  Future<void> close() {
+    _bookingSubscription?.cancel(); // [NOVO]
+    return super.close();
   }
 }

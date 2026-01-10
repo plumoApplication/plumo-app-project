@@ -697,6 +697,7 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
       paymentMethod: _selectedPaymentMethod,
 
       driverProfile: tempDriverProfile,
+      isCustomPickup: _wantDoorToDoor,
     );
     // Dialog de Confirmação, antes de enviar a solicitação da reserva
     showDialog(

@@ -38,6 +38,7 @@ class BookingRepositoryImpl implements BookingRepository {
 
         message: booking.message,
         paymentMethod: booking.paymentMethod,
+        isCustomPickup: booking.isCustomPickup,
       );
 
       await remoteDataSource.createBooking(bookingModel);

@@ -6,4 +6,5 @@ import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
 abstract class MyTripsRepository {
   /// Busca a lista de reservas feitas pelo passageiro logado.
   Future<Either<Failure, List<BookingEntity>>> getMyTrips();
+  Stream<void> getBookingStream();
 }

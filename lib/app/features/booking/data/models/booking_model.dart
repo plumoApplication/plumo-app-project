@@ -24,6 +24,7 @@ class BookingModel extends BookingEntity {
     super.driverProfile,
     super.message,
     super.paymentMethod,
+    super.isCustomPickup,
   });
 
   factory BookingModel.fromMap(Map<String, dynamic> map) {
@@ -68,6 +69,7 @@ class BookingModel extends BookingEntity {
 
       message: map['message'] as String?,
       paymentMethod: map['payment_method'] as String?,
+      isCustomPickup: map['is_custom_pickup'] ?? false,
     );
   }
 
@@ -87,6 +89,7 @@ class BookingModel extends BookingEntity {
       'pickup_address': pickupAddress,
       'message': message,
       'payment_method': paymentMethod,
+      'is_custom_pickup': isCustomPickup,
     };
   }
 }

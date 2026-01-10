@@ -31,4 +31,10 @@ class DriverTripsRepositoryImpl implements DriverTripsRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Stream<void> getBookingStream() {
+    // Apenas repassa o stream do DataSource
+    return remoteDataSource.getBookingStream();
+  }
 }

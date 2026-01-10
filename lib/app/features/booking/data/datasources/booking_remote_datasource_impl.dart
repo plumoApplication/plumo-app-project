@@ -27,6 +27,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'p_pickup_address': booking.pickupAddress,
           'p_message': booking.message,
           'p_payment_method': booking.paymentMethod,
+          'p_is_custom_pickup': booking.isCustomPickup,
         },
       );
 
