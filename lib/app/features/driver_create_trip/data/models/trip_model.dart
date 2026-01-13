@@ -89,6 +89,7 @@ class TripModel extends TripEntity {
   }
 
   /// COPY WITH (Método Essencial Adicionado)
+  @override
   TripModel copyWith({
     String? id,
     String? driverId,

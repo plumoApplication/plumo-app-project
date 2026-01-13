@@ -156,7 +156,7 @@ class TripSearchRemoteDataSourceImpl implements TripSearchRemoteDataSource {
         if (finalCalculatedPrice < 0) finalCalculatedPrice = trip.price;
 
         completeTrips.add(
-          trip.copyWith(
+          trip.copyWithResult(
             waypoints: myWaypointsModels,
             displayOrigin: finalDisplayOrigin,
             displayDestination: finalDisplayDest,

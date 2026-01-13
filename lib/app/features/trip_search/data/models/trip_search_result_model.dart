@@ -78,7 +78,7 @@ class TripSearchResultModel extends TripSearchResultEntity {
   }
 
   // [CORREÇÃO: Removemos o @override pois Entity não tem copyWith]
-  TripSearchResultModel copyWith({
+  TripSearchResultModel copyWithResult({
     String? id,
     String? driverId,
     DateTime? departureTime,
