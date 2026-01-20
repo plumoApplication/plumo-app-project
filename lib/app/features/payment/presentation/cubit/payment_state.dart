@@ -28,11 +28,18 @@ class PaymentProcessed extends PaymentState {
   List<Object> get props => [paymentData];
 }
 
-/// -------------------------
-
 class PaymentError extends PaymentState {
   final String message;
   const PaymentError({required this.message});
   @override
   List<Object> get props => [message];
 }
+
+class PaymentTimerTick extends PaymentState {
+  final int secondsRemaining;
+  const PaymentTimerTick({required this.secondsRemaining});
+  @override
+  List<Object> get props => [secondsRemaining];
+}
+
+class PaymentExpired extends PaymentState {}

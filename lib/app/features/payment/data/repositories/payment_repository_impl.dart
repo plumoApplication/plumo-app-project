@@ -19,6 +19,7 @@ class PaymentRepositoryImpl implements PaymentRepository {
     String? token,
     int? installments,
     String? issuerId,
+    String? docNumber,
   }) async {
     try {
       final result = await remoteDataSource.processPayment(
@@ -29,6 +30,7 @@ class PaymentRepositoryImpl implements PaymentRepository {
         token: token,
         installments: installments,
         issuerId: issuerId,
+        docNumber: docNumber,
       );
       return Right(result);
     } on ServerException catch (e) {

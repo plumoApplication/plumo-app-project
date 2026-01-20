@@ -46,6 +46,31 @@ class _ProfileView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
+          if (state is ProfileError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ocorreu um erro ao carregar o perfil.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Permite ao usuário tentar de novo sem reiniciar o app
+                      context.read<ProfileCubit>().loadProfile();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tentar Novamente'),
+                  ),
+                ],
+              ),
+            );
+          }
+
           if (state is ProfileLoaded) {
             final profile = state.profile;
             final isDriver = profile.role == 'driver';
@@ -178,9 +203,7 @@ class _ProfileView extends StatelessWidget {
           }
 
           // Fallback
-          return const Center(
-            child: Text('Não foi possível carregar o perfil.'),
-          );
+          return const Center(child: Text('Carregando informações...'));
         },
       ),
     );

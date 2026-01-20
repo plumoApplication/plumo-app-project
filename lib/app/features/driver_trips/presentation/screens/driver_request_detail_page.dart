@@ -571,7 +571,7 @@ class DriverRequestDetailPage extends StatelessWidget {
   Widget _buildPaymentInfo(String price) {
     IconData icon = Icons.payment;
     String method = "PIX";
-    if (booking.paymentMethod == 'credit_card') {
+    if (booking.paymentMethodId == 'credit_card') {
       icon = Icons.credit_card;
       method = "Cartão de Crédito";
     }

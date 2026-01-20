@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:plumo/app/core/services/service_locator.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:plumo/app/features/payment/presentation/cubit/payment_state.dart';
 
-class CreditCardFormPage extends StatelessWidget {
+class CreditCardFormPage extends StatefulWidget {
   final String bookingId;
   final String title;
   final double price;
@@ -18,49 +17,22 @@ class CreditCardFormPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Usamos o Cubit existente (injetado ou passado)
-    // Aqui optamos por fornecer um novo escopo ou usar o global se já estiver lá.
-    // Como é uma nova rota (Navigator.push), é mais seguro pegar do SL.
-    return BlocProvider(
-      create: (context) => sl<PaymentCubit>(),
-      child: _CreditCardFormView(
-        bookingId: bookingId,
-        title: title,
-        price: price,
-      ),
-    );
-  }
+  State<CreditCardFormPage> createState() => _CreditCardFormPageState();
 }
 
-class _CreditCardFormView extends StatefulWidget {
-  final String bookingId;
-  final String title;
-  final double price;
-
-  const _CreditCardFormView({
-    required this.bookingId,
-    required this.title,
-    required this.price,
-  });
-
-  @override
-  State<_CreditCardFormView> createState() => _CreditCardFormViewState();
-}
-
-class _CreditCardFormViewState extends State<_CreditCardFormView> {
+class _CreditCardFormPageState extends State<CreditCardFormPage> {
   final _formKey = GlobalKey<FormState>();
 
+  // Controllers
   final _cardNumberController = TextEditingController();
   final _nameController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _cpfController = TextEditingController();
 
-  // Parcelas (Default 1)
   int _installments = 1;
 
-  // Máscaras
+  // Mask Formatters
   final _cardMask = MaskTextInputFormatter(
     mask: '#### #### #### ####',
     filter: {"#": RegExp(r'[0-9]')},
@@ -72,7 +44,7 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
   final _cvvMask = MaskTextInputFormatter(
     mask: '####',
     filter: {"#": RegExp(r'[0-9]')},
-  ); // Até 4 dígitos (Amex)
+  );
   final _cpfMask = MaskTextInputFormatter(
     mask: '###.###.###-##',
     filter: {"#": RegExp(r'[0-9]')},
@@ -80,6 +52,7 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
 
   @override
   void dispose() {
+    _cardNumberController.removeListener(_updateCardBrand);
     _cardNumberController.dispose();
     _nameController.dispose();
     _expiryController.dispose();
@@ -101,13 +74,115 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
         cpf: _cpfMask.getUnmaskedText(),
         installments: _installments,
       );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verifique os campos em vermelho.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
+  }
+
+  String _currentBrand = 'unknown';
+
+  @override
+  void initState() {
+    super.initState();
+    // Adiciona o ouvinte para detectar a bandeira em tempo real
+    _cardNumberController.addListener(_updateCardBrand);
+  }
+
+  void _updateCardBrand() {
+    final number = _cardNumberController.text;
+    // Acessa o serviço através do Cubit (que já está injetado)
+    final service = context.read<PaymentCubit>().mercadoPagoService;
+    final brand = service.guessPaymentMethodId(number);
+
+    if (brand != _currentBrand) {
+      setState(() {
+        _currentBrand = brand;
+      });
+    }
+  }
+
+  Widget _getBrandIcon() {
+    const double iconHeight = 24.0;
+
+    // Fallback para ícone cinza se for desconhecido
+    if (_currentBrand == 'unknown' || _currentBrand.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Icon(Icons.credit_card, color: Colors.grey),
+      );
+    }
+
+    // Retorna a imagem da bandeira
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8.0,
+        vertical: 8.0,
+      ), // Ajuste o padding conforme necessário
+      child: Image.asset(
+        'assets/images/credit_card_icon/$_currentBrand.png', // Ex: assets/images/visa.png
+        height: iconHeight,
+        width: 40, // Forçamos uma largura máxima para manter padrão
+        fit: BoxFit.contain, // Garante que a logo inteira apareça sem distorcer
+        errorBuilder: (context, error, stackTrace) {
+          // Se esqueceu de colocar a imagem na pasta, mostra o texto como fallback
+          return _getFallbackBadge();
+        },
+      ),
+    );
+  }
+
+  // Mantivemos o código antigo aqui como um "plano B" caso a imagem falhe
+  Widget _getFallbackBadge() {
+    Color color = Colors.grey;
+    String text = _currentBrand;
+
+    switch (_currentBrand) {
+      case 'visa':
+        color = Colors.blue.shade900;
+        break;
+      case 'master':
+        color = Colors.orange.shade800;
+        break;
+      case 'elo':
+        color = Colors.red.shade700;
+        break;
+      case 'amex':
+        color = Colors.green.shade700;
+        break;
+      case 'hipercard':
+        color = Colors.redAccent;
+        break;
+    }
+
+    return Container(
+      width: 40,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withAlpha(26),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withAlpha(128)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pagar com Cartão')),
+      appBar: AppBar(title: const Text('Pagamento Seguro')),
       body: BlocConsumer<PaymentCubit, PaymentState>(
         listener: (context, state) {
           if (state is PaymentError) {
@@ -118,9 +193,23 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
               ),
             );
           }
+          if (state is PaymentExpired) {
+            Navigator.pop(context);
+            showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('Tempo Esgotado'),
+                content: const Text('Sua reserva expirou. Tente novamente.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
           if (state is PaymentProcessed) {
-            // Sucesso! O pagamento foi processado.
-            // (O status pode ser 'approved' ou 'in_process')
             final status = state.paymentData.status;
             if (status == 'approved') {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -129,12 +218,11 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
                   backgroundColor: Colors.green,
                 ),
               );
-              // Volta para a tela anterior com sucesso
-              Navigator.of(context).pop(true);
+              Navigator.of(context).pop(true); // Retorna sucesso
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Status: $status. Verifique com seu banco.'),
+                  content: Text('Pagamento recusado: $status'),
                   backgroundColor: Colors.orange,
                 ),
               );
@@ -142,62 +230,91 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
           }
         },
         builder: (context, state) {
-          final bool isLoading = state is PaymentLoading;
+          final isLoading = state is PaymentLoading;
+
+          // Timer Display
+          String timerText = "";
+          if (state is PaymentTimerTick) {
+            final m = (state.secondsRemaining / 60).floor().toString().padLeft(
+              2,
+              '0',
+            );
+            final s = (state.secondsRemaining % 60).toString().padLeft(2, '0');
+            timerText = "$m:$s";
+          }
 
           return Stack(
             children: [
               SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(24),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Info do Valor
-                      Text(
-                        'Valor a pagar: R\$ ${widget.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                        textAlign: TextAlign.center,
+                      // Header com Timer
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total: R\$ ${widget.price.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[800],
+                            ),
+                          ),
+                          if (timerText.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Expira em $timerText',
+                                style: TextStyle(
+                                  color: Colors.red.shade800,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Número do Cartão
+                      // Campos do Cartão
                       TextFormField(
                         controller: _cardNumberController,
                         inputFormatters: [_cardMask],
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Número do Cartão',
-                          prefixIcon: Icon(Icons.credit_card),
+                          prefixIcon: const Icon(Icons.credit_card_outlined),
+                          suffixIcon: _getBrandIcon(),
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) => (v == null || v.length < 19)
-                            ? 'Inválido'
-                            : null, // 16 digitos + espaços
+                            ? 'Número inválido'
+                            : null,
                       ),
                       const SizedBox(height: 16),
-
-                      // Nome (Como no cartão)
                       TextFormField(
                         controller: _nameController,
+                        textCapitalization: TextCapitalization.characters,
                         decoration: const InputDecoration(
-                          labelText: 'Nome (como no cartão)',
-                          prefixIcon: Icon(Icons.person),
+                          labelText: 'Nome do Titular',
+                          prefixIcon: Icon(Icons.person_outline),
                           border: OutlineInputBorder(),
                         ),
-                        textCapitalization: TextCapitalization.characters,
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Obrigatório' : null,
+                        validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                       ),
                       const SizedBox(height: 16),
-
                       Row(
                         children: [
-                          // Validade (MM/YY)
                           Expanded(
                             child: TextFormField(
                               controller: _expiryController,
@@ -205,16 +322,13 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                 labelText: 'Validade (MM/AA)',
-                                hintText: '12/28',
                                 border: OutlineInputBorder(),
                               ),
-                              validator: (v) => (v == null || v.length < 5)
-                                  ? 'Inválido'
-                                  : null,
+                              validator: (v) =>
+                                  (v!.length < 5) ? 'Inválido' : null,
                             ),
                           ),
                           const SizedBox(width: 16),
-                          // CVV
                           Expanded(
                             child: TextFormField(
                               controller: _cvvController,
@@ -222,19 +336,16 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                 labelText: 'CVV',
-                                hintText: '123',
                                 border: OutlineInputBorder(),
+                                suffixIcon: Icon(Icons.help_outline, size: 20),
                               ),
-                              validator: (v) => (v == null || v.length < 3)
-                                  ? 'Inválido'
-                                  : null,
+                              validator: (v) =>
+                                  (v!.length < 3) ? 'Inválido' : null,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // CPF do Titular
                       TextFormField(
                         controller: _cpfController,
                         inputFormatters: [_cpfMask],
@@ -244,57 +355,76 @@ class _CreditCardFormViewState extends State<_CreditCardFormView> {
                           border: OutlineInputBorder(),
                         ),
                         validator: (v) =>
-                            (v == null || v.length < 14) ? 'Inválido' : null,
+                            (v!.length < 14) ? 'CPF incompleto' : null,
                       ),
                       const SizedBox(height: 16),
-
-                      // Dropdown de Parcelas (Simplificado para MVP: 1x a 12x)
                       DropdownButtonFormField<int>(
                         initialValue: _installments,
                         decoration: const InputDecoration(
                           labelText: 'Parcelas',
                           border: OutlineInputBorder(),
                         ),
-                        items: List.generate(12, (index) => index + 1)
-                            .map(
-                              (i) => DropdownMenuItem(
-                                value: i,
-                                child: Text(
-                                  '${i}x ${i == 1 ? 'sem juros' : ''}',
-                                ),
-                              ),
-                            )
-                            .toList(),
+                        items: List.generate(12, (i) => i + 1).map((i) {
+                          return DropdownMenuItem(
+                            value: i,
+                            child: Text('${i}x ${i == 1 ? 'sem juros' : ''}'),
+                          );
+                        }).toList(),
                         onChanged: (val) =>
                             setState(() => _installments = val!),
                       ),
-
                       const SizedBox(height: 32),
 
-                      // Botão Pagar
+                      // Botão Confirmar
                       ElevatedButton(
                         onPressed: isLoading ? null : _onPay,
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.blue.shade800,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          backgroundColor: Colors.blueAccent.shade700,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text('Confirmar Pagamento'),
+                        child: Text(
+                          isLoading ? 'PROCESSANDO...' : 'CONFIRMAR PAGAMENTO',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Pagamento criptografado e seguro',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-
-              // Loading Overlay
               if (isLoading)
                 Container(
-                  color: Colors.black.withAlpha(128),
-                  child: const Center(child: CircularProgressIndicator()),
+                  color: Colors.black54,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
                 ),
             ],
           );

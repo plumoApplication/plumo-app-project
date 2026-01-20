@@ -17,41 +17,67 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     String? token,
     int? installments,
     String? issuerId,
+    String? docNumber,
   }) async {
     try {
       // Precisamos do e-mail do pagador (o usuário logado)
       final userEmail = supabaseClient.auth.currentUser?.email;
       if (userEmail == null) {
-        throw ServerException(message: "E-mail não encontrado.");
+        throw ServerException(message: "E-mail do usuário não identificado.");
       }
 
-      // Chama a Edge Function atualizada
+      // Chama a Edge Function
       final response = await supabaseClient.functions.invoke(
-        'create-payment-preference', // (Mantivemos o nome antigo da função)
+        'process-payment',
         body: {
           'booking_id': bookingId,
-          'description': description,
-          'transaction_amount': amount,
-          'payment_method_id': paymentMethodId, // ex: 'pix'
           'payer_email': userEmail,
+          'payment_method_id': paymentMethodId, // ex: 'pix'
+          'transaction_amount': amount, // Enviamos, mas o back valida no banco
           'token': token,
           'installments': installments,
           'issuer_id': issuerId,
+          'doc_number': docNumber, // Envia o CPF para o backend
         },
       );
 
       final data = response.data;
 
+      // Tratamento de erro vindo da Edge Function
       if (data == null || (data is Map && data['error'] != null)) {
         throw ServerException(
-          message:
-              data?['error'] ?? 'Erro desconhecido ao processar pagamento.',
+          message: data?['error'] ?? 'Erro desconhecido ao processar.',
         );
       }
 
       // Converte o JSON cru do MP para nosso Modelo
       return PaymentResponseModel.fromMap(data);
+    } on supabase.FunctionException catch (e) {
+      // 1. Mensagem de fallback com o código de status HTTP
+      String failureMessage =
+          "Falha ao processar pagamento (Erro ${e.status}).";
+
+      // 2. Extração segura do conteúdo de 'details'
+      if (e.details != null) {
+        if (e.details is Map) {
+          // Se o backend retornou JSON (ex: {"error": "Saldo insuficiente"})
+          final Map<dynamic, dynamic> errorMap = e.details;
+
+          // Tenta encontrar a mensagem em chaves comuns de APIs
+          failureMessage =
+              errorMap['message'] ??
+              errorMap['error'] ??
+              errorMap['description'] ??
+              failureMessage; // Mantém o fallback se não achar chave
+        } else {
+          // Se o backend retornou texto puro (String)
+          failureMessage = e.details.toString();
+        }
+      }
+
+      throw ServerException(message: failureMessage);
     } catch (e) {
+      // Erros genéricos de conexão ou Dart
       throw ServerException(message: 'Erro no pagamento: ${e.toString()}');
     }
   }

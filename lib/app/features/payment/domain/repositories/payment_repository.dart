@@ -11,5 +11,6 @@ abstract class PaymentRepository {
     String? token,
     int? installments,
     String? issuerId,
+    String? docNumber,
   });
 }

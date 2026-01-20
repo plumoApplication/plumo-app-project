@@ -27,7 +27,7 @@ class BookingEntity extends Equatable {
   final ProfileEntity? driverProfile;
 
   final String? message;
-  final String? paymentMethod;
+  final String? paymentMethodId;
   final bool isCustomPickup;
 
   const BookingEntity({
@@ -50,7 +50,7 @@ class BookingEntity extends Equatable {
     this.passengerProfile,
     this.driverProfile,
     this.message,
-    this.paymentMethod,
+    this.paymentMethodId,
     this.isCustomPickup = false,
   });
 
@@ -75,7 +75,7 @@ class BookingEntity extends Equatable {
     passengerProfile,
     driverProfile,
     message,
-    paymentMethod,
+    paymentMethodId,
     isCustomPickup,
   ];
 }

@@ -37,7 +37,7 @@ class BookingRepositoryImpl implements BookingRepository {
         pickupAddress: booking.pickupAddress,
 
         message: booking.message,
-        paymentMethod: booking.paymentMethod,
+        paymentMethodId: booking.paymentMethodId,
         isCustomPickup: booking.isCustomPickup,
       );
 

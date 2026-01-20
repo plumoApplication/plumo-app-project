@@ -23,7 +23,7 @@ class BookingModel extends BookingEntity {
     super.passengerProfile,
     super.driverProfile,
     super.message,
-    super.paymentMethod,
+    super.paymentMethodId,
     super.isCustomPickup,
   });
 
@@ -68,7 +68,7 @@ class BookingModel extends BookingEntity {
           : null,
 
       message: map['message'] as String?,
-      paymentMethod: map['payment_method'] as String?,
+      paymentMethodId: map['payment_method_id'] as String?,
       isCustomPickup: map['is_custom_pickup'] ?? false,
     );
   }
@@ -88,7 +88,7 @@ class BookingModel extends BookingEntity {
       'pickup_lng': pickupLng,
       'pickup_address': pickupAddress,
       'message': message,
-      'payment_method': paymentMethod,
+      'payment_method_id': paymentMethodId,
       'is_custom_pickup': isCustomPickup,
     };
   }

@@ -6,6 +6,8 @@ import 'package:plumo/app/features/booking/domain/entities/booking_entity.dart';
 import 'package:plumo/app/features/booking/presentation/cubit/booking_cubit.dart';
 import 'package:plumo/app/features/booking/presentation/cubit/booking_state.dart';
 import 'package:plumo/app/features/booking/presentation/widgets/boarding_location_sheet.dart';
+import 'package:plumo/app/features/payment/presentation/cubit/payment_cubit.dart';
+import 'package:plumo/app/features/payment/presentation/widgets/payment_method_selector.dart';
 
 class BookingDetailPage extends StatefulWidget {
   final BookingEntity booking;
@@ -144,6 +146,37 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ],
       ),
     );
+  }
+
+  void _startPaymentFlow() {
+    final String tripTitle =
+        "${widget.booking.originName} -> ${widget.booking.destinationName}";
+
+    final paymentCubit = sl<PaymentCubit>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalContext) {
+        return BlocProvider.value(
+          value: paymentCubit,
+          child: PaymentMethodSelector(
+            bookingId: widget.booking.id ?? '',
+            title: tripTitle,
+            price: widget.booking.totalPrice,
+          ),
+        );
+      },
+    ).then((result) {
+      if (result == true) {
+        if (mounted) {
+          setState(() {
+            _currentStatus = 'confirmed';
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -543,10 +576,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     IconData paymentIcon = Icons.attach_money;
     String paymentText = "Dinheiro";
 
-    if (widget.booking.paymentMethod == 'pix') {
+    if (widget.booking.paymentMethodId == 'pix') {
       paymentIcon = Icons.pix;
       paymentText = "PIX";
-    } else if (widget.booking.paymentMethod == 'credit_card') {
+    } else if (widget.booking.paymentMethodId == 'credit_card') {
       paymentIcon = Icons.credit_card;
       paymentText = "Cartão";
     }
@@ -708,14 +741,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Navegar para tela de pagamento ou exibir QR Code
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Fluxo de pagamento em breve"),
-                    ),
-                  );
-                },
+                onPressed: () => _startPaymentFlow(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(vertical: 16),

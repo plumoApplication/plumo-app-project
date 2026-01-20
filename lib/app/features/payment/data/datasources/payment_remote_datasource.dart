@@ -10,5 +10,6 @@ abstract class PaymentRemoteDataSource {
     String? token,
     int? installments,
     String? issuerId,
+    String? docNumber,
   });
 }

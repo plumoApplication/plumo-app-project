@@ -694,7 +694,7 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
       pickupLat: finalPickupLat,
       pickupLng: finalPickupLng,
       message: _messageController.text,
-      paymentMethod: _selectedPaymentMethod,
+      paymentMethodId: _selectedPaymentMethod,
 
       driverProfile: tempDriverProfile,
       isCustomPickup: _wantDoorToDoor,

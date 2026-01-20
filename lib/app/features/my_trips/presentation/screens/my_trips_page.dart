@@ -97,7 +97,7 @@ class _MyTripsViewState extends State<_MyTripsView>
               return s == 'pending' ||
                   s == 'requested' ||
                   s == 'approved' ||
-                  s == 'paid';
+                  s == 'cofirmed';
             }).toList();
 
             final finishedTrips = state.bookings.where((b) {
@@ -105,7 +105,9 @@ class _MyTripsViewState extends State<_MyTripsView>
             }).toList();
 
             final cancelledTrips = state.bookings.where((b) {
-              return b.status == 'cancelled' || b.status == 'rejected';
+              return b.status == 'cancelled' ||
+                  b.status == 'rejected' ||
+                  b.status == 'expired';
             }).toList();
 
             return TabBarView(
@@ -227,7 +229,7 @@ class _MyTripCard extends StatelessWidget {
     String statusLabel;
     bool showPaymentWarning = false;
 
-    if (tripStatus == 'cancelled' || tripStatus == 'rejected') {
+    if (tripStatus == 'cancelled' || tripStatus == 'expired') {
       statusColor = Colors.red;
       statusLabel = "Cancelada";
     } else if (tripStatus == 'finished') {
