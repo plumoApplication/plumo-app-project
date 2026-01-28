@@ -1,7 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
-import 'package:plumo/app/core/constants/api_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:plumo/app/core/services/mercadopago/mercadopago_service.dart';
 
 // ... (Imports de Auth) ...
@@ -96,8 +96,9 @@ final sl = GetIt.instance;
 void setupServiceLocator() {
   // --== CORE ==--
   sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
+  final googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
   sl.registerSingleton<FlutterGooglePlacesSdk>(
-    FlutterGooglePlacesSdk(ApiConstants.googleMapsApiKey),
+    FlutterGooglePlacesSdk(googleMapsApiKey),
   );
   sl.registerLazySingleton<MercadoPagoService>(() => MercadoPagoService());
 

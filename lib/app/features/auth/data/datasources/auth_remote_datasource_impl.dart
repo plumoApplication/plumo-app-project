@@ -2,12 +2,8 @@ import 'package:plumo/app/core/errors/exceptions.dart';
 import 'package:plumo/app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:plumo/app/core/constants/api_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
-
-// Esta é a IMPLEMENTAÇÃO do nosso DataSource.
-// É ela quem "suja as mãos" e chama o Supabase.
-// Note que ela 'implements' (implementa) o contrato que acabamos de criar.
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final supabase.SupabaseClient supabaseClient;
@@ -86,9 +82,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> signInWithGoogle() async {
     try {
+      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
+
       // 1. Instancia usando o prefixo 'gsi' para garantir que é o pacote correto
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: ApiConstants.googleWebClientId,
+        serverClientId: webClientId,
         scopes: ['email', 'profile'],
       );
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:plumo/app/core/constants/api_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:plumo/app/core/errors/exceptions.dart';
 
 class MercadoPagoService {
@@ -18,9 +18,15 @@ class MercadoPagoService {
     required String identificationType, // ex: CPF
     required String identificationNumber,
   }) async {
-    final url = Uri.parse(
-      '$_baseUrl/card_tokens?public_key=${ApiConstants.mercadoPagoPublicKey}',
-    );
+    final publicKey = dotenv.env['MP_PUBLIC_KEY'] ?? '';
+
+    if (publicKey.isEmpty) {
+      throw ServerException(
+        message: 'Chave Pública do Mercado Pago não configurada.',
+      );
+    }
+
+    final url = Uri.parse('$_baseUrl/card_tokens?public_key=$publicKey');
 
     try {
       final response = await http.post(
