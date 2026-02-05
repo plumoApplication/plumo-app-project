@@ -3,18 +3,33 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:intl/intl.dart';
 import 'package:plumo/app/core/services/service_locator.dart';
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
+import 'package:plumo/app/features/announcements/presentation/cubit/announcements_state.dart';
+import 'package:plumo/app/features/announcements/presentation/widgets/announcements_carousel.dart';
+import 'package:plumo/app/features/trip_search/presentation/cubit/recent_searches/recent_searches_cubit.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_cubit.dart';
 import 'package:plumo/app/features/trip_search/presentation/cubit/trip_search_state.dart';
 import 'package:plumo/app/features/trip_search/presentation/widgets/search_city_field.dart';
 import 'package:plumo/app/features/trip_search/presentation/screens/trip_results_page.dart';
+import 'package:plumo/app/core/database/app_database.dart';
+import 'package:plumo/app/features/trip_search/presentation/widgets/recent_searches_list.dart';
 
 class TripSearchPage extends StatelessWidget {
   const TripSearchPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<TripSearchCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => sl<TripSearchCubit>()),
+        BlocProvider(
+          create: (context) => sl<RecentSearchesCubit>()..loadRecentSearches(),
+        ),
+        BlocProvider(
+          create: (context) =>
+              sl<AnnouncementsCubit>()..loadAnnouncements('passenger'),
+        ),
+      ],
       child: const _TripSearchView(),
     );
   }
@@ -46,6 +61,7 @@ class _TripSearchViewState extends State<_TripSearchView> {
     super.dispose();
   }
 
+  // --- LÓGICA DE DATA ---
   // Abre o calendário nativo
   Future<void> _selectDate() async {
     final now = DateTime.now();
@@ -86,6 +102,75 @@ class _TripSearchViewState extends State<_TripSearchView> {
     }
   }
 
+  // --- AÇÃO AO CLICAR NA BUSCA RECENTE ---
+  void _onRecentSearchSelected(RecentSearch search) {
+    // 1. Preenche os textos
+    _originController.text = search.originText;
+    _destinationController.text = search.destinationText;
+
+    // 2. Reconstrói os objetos Place (Manual, pois o Drift salvou os dados brutos)
+    // O flutter_google_places_sdk permite criar um Place manualmente
+    setState(() {
+      _originPlace = _createMinimalPlace(
+        id: search.originPlaceId,
+        name: search.originText,
+        lat: search.originLat,
+        lng: search.originLng,
+      );
+
+      _destinationPlace = _createMinimalPlace(
+        id: search.destinationPlaceId,
+        name: search.destinationText,
+        lat: search.destinationLat,
+        lng: search.destinationLng,
+      );
+
+      // 3. Lógica inteligente de data
+      // Se a data salva já passou, define para HOJE. Se é futura, mantém.
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      if (search.tripDate.isBefore(today)) {
+        _selectedDate = today; // Data antiga -> Vai para hoje
+      } else {
+        _selectedDate = search.tripDate; // Data futura -> Mantém
+      }
+
+      _dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate!);
+    });
+  }
+
+  Place _createMinimalPlace({
+    required String id,
+    required String name,
+    required double lat,
+    required double lng,
+  }) {
+    return Place(
+      id: id,
+      name: name,
+      latLng: LatLng(lat: lat, lng: lng),
+      // --- Campos obrigatórios que não temos (passamos null) ---
+      address: null,
+      addressComponents: null,
+      businessStatus: null,
+      attributions: null,
+      nameLanguageCode: null,
+      openingHours: null,
+      phoneNumber: null,
+      photoMetadatas: null,
+      plusCode: null,
+      priceLevel: null,
+      rating: null,
+      types: null,
+      userRatingsTotal: null,
+      utcOffsetMinutes: null,
+      viewport: null,
+      websiteUri: null,
+      reviews: null,
+    );
+  }
+
   // Ação do Botão Buscar
   void _onSearch() {
     // Validação Simples
@@ -101,12 +186,39 @@ class _TripSearchViewState extends State<_TripSearchView> {
       return;
     }
 
-    // Dispara o Cubit
+    // Salvar no histórico antes de buscar
+    context.read<RecentSearchesCubit>().addSearch(
+      originText:
+          _originPlace!.name ?? _originController.text, // Garante ter texto
+      originId: _originPlace!.id ?? '',
+      originLat: _originPlace!.latLng?.lat ?? 0.0,
+      originLng: _originPlace!.latLng?.lng ?? 0.0,
+      destText: _destinationPlace!.name ?? _destinationController.text,
+      destId: _destinationPlace!.id ?? '',
+      destLat: _destinationPlace!.latLng?.lat ?? 0.0,
+      destLng: _destinationPlace!.latLng?.lng ?? 0.0,
+      date: _selectedDate!,
+      reloadList: false,
+    );
+
+    // Dispara o Cubit de Busca de Viagem
     context.read<TripSearchCubit>().searchTrips(
       origin: _originPlace!,
       destination: _destinationPlace!,
       date: _selectedDate!,
     );
+  }
+
+  void _clearFields() {
+    setState(() {
+      _originController.clear();
+      _destinationController.clear();
+      _dateController.clear();
+
+      _originPlace = null;
+      _destinationPlace = null;
+      _selectedDate = null;
+    });
   }
 
   @override
@@ -137,11 +249,19 @@ class _TripSearchViewState extends State<_TripSearchView> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                // Vamos construir essa tela no próximo passo!
-                // Se der erro aqui agora, é normal.
-                builder: (_) => TripResultsPage(trips: state.trips),
+                builder: (context) => TripResultsPage(
+                  originCity: _originController.text,
+                  destinationCity: _destinationController.text,
+                  searchDate: _selectedDate ?? DateTime.now(),
+                  trips: state.trips,
+                ),
               ),
-            );
+            ).then((_) {
+              if (context.mounted) {
+                context.read<RecentSearchesCubit>().loadRecentSearches();
+                _clearFields();
+              }
+            });
             // Reseta o estado para quando o usuário voltar não navegar de novo
             context.read<TripSearchCubit>().resetSearch();
           }
@@ -151,6 +271,20 @@ class _TripSearchViewState extends State<_TripSearchView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              BlocBuilder<AnnouncementsCubit, AnnouncementsState>(
+                builder: (context, state) {
+                  if (state is AnnouncementsLoaded &&
+                      state.announcements.isNotEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: AnnouncementsCarousel(
+                        announcements: state.announcements,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               Text(
                 'Para onde vamos?',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -160,12 +294,12 @@ class _TripSearchViewState extends State<_TripSearchView> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Encontre a carona perfeita para você.',
+                'Viaje com conforto, segurança e praticidade',
                 style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // 1. ORIGEM (Novo Widget)
+              // 1. ORIGEM
               SearchCityField(
                 label: 'Saindo de...',
                 icon: Icons.my_location,
@@ -174,9 +308,9 @@ class _TripSearchViewState extends State<_TripSearchView> {
                   setState(() => _originPlace = place);
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // 2. DESTINO (Novo Widget)
+              // 2. DESTINO
               SearchCityField(
                 label: 'Indo para...',
                 icon: Icons.location_on,
@@ -185,7 +319,7 @@ class _TripSearchViewState extends State<_TripSearchView> {
                   setState(() => _destinationPlace = place);
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // 3. DATA (Campo ReadOnly com DatePicker)
               GestureDetector(
@@ -209,7 +343,7 @@ class _TripSearchViewState extends State<_TripSearchView> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
 
               // 4. BOTÃO BUSCAR
               SizedBox(
@@ -241,6 +375,11 @@ class _TripSearchViewState extends State<_TripSearchView> {
                   },
                 ),
               ),
+              const SizedBox(height: 24),
+
+              RecentSearchesList(onSearchSelected: _onRecentSearchSelected),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),

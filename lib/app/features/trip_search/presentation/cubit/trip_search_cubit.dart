@@ -35,6 +35,10 @@ class TripSearchCubit extends Cubit<TripSearchState> {
       if (trips.isEmpty) {
         emit(TripSearchEmpty());
       } else {
+        final sortedTrips = List.of(trips);
+        sortedTrips.sort((a, b) => a.departureTime.compareTo(b.departureTime));
+
+        //lista já ordenada!
         emit(TripSearchSuccess(trips: trips));
       }
     });

@@ -42,7 +42,7 @@ class TripSearchResultModel extends TripSearchResultEntity {
           ? DateTime.parse(map['departure_time'])
           : DateTime.now(),
 
-      availableSeats: map['available_seats'] ?? 0,
+      availableSeats: map['current_available_seats'] ?? map['available_seats'],
       status: map['status'],
 
       // Preços

@@ -89,6 +89,13 @@ import 'package:plumo/app/features/announcements/data/datasources/announcements_
 import 'package:plumo/app/features/announcements/data/repositories/announcements_repository_impl.dart';
 import 'package:plumo/app/features/announcements/domain/repositories/announcements_repository.dart';
 import 'package:plumo/app/features/announcements/presentation/cubit/announcements_cubit.dart';
+
+// ... (Imports DataBase) ===
+import 'package:plumo/app/core/database/app_database.dart';
+
+// ... (Imports da Recent Searches) ===
+import 'package:plumo/app/features/trip_search/data/repositories/recent_searches_repository.dart';
+import 'package:plumo/app/features/trip_search/presentation/cubit/recent_searches/recent_searches_cubit.dart';
 // ==========================================
 
 final sl = GetIt.instance;
@@ -245,6 +252,18 @@ void setupServiceLocator() {
     () => AnnouncementsCubit(
       repository: sl(), // O repositório que já registramos
     ),
+  );
+
+  // ================== DataBase ==================
+  sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
+
+  // ================== Recent Searches ==================
+  sl.registerLazySingleton<RecentSearchesRepository>(
+    () => RecentSearchesRepository(sl()), // Injeta o AppDatabase
+  );
+
+  sl.registerFactory<RecentSearchesCubit>(
+    () => RecentSearchesCubit(repository: sl()), // Injeta o Repository
   );
   // ========================
 }
